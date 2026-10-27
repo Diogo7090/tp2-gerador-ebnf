@@ -1,0 +1,15 @@
+--- testes/esperado/expr.gerador	2026-10-27 12:22:35.936953399 -0400
++++ build/testes/expr.gerador	2026-10-27 14:28:34.357001053 -0400
+@@ -1,8 +1,4 @@
+-NAO TERMINAL  ANULAVEL  FIRST / FOLLOW
+-expr          nao       FIRST  = {NUM, ID, '('}
+-                        FOLLOW = {$, ')'}
+-term          nao       FIRST  = {NUM, ID, '('}
+-                        FOLLOW = {$, '+', '-', ')'}
+-factor        nao       FIRST  = {NUM, ID, '('}
+-                        FOLLOW = {$, '+', '-', '*', '/', ')'}
+-status 0
++testes/gramaticas/expr.ebnf:8:12: erro: esperado ';', encontrado nao terminal 'term'
++testes/gramaticas/expr.ebnf:9:12: erro: esperado ';', encontrado nao terminal 'factor'
++testes/gramaticas/expr.ebnf:10:12: erro: esperado ';', encontrado nome de terminal 'NUM'
++status 1

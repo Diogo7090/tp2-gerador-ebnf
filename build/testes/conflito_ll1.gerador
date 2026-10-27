@@ -1,0 +1,3 @@
+testes/gramaticas/conflito_ll1.ebnf:8:10: erro: esperado ';', encontrado nome de terminal 'ID'
+testes/gramaticas/conflito_ll1.ebnf:9:10: erro: esperado ';', encontrado nome de terminal 'ID'
+status 1

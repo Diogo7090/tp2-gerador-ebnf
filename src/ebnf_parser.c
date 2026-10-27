@@ -83,6 +83,10 @@ static void sincronizar(Parser *p)
 /* ------------------------------------------------------------------ */
 
 static Expr *parse_expr(Parser *p);
+static Expr *parse_seq(Parser *p);
+static Expr *parse_fator(Parser *p);
+
+
 
 /*
  * TODO(aluno): implementar as funcoes abaixo seguindo a gramatica da
@@ -107,18 +111,79 @@ static Expr *parse_expr(Parser *p);
  * O stub abaixo apenas descarta o lado direito da regra, para que o
  * gerador compile e execute de ponta a ponta. Substitua-o.
  */
+
+
 static Expr *parse_expr(Parser *p)
 {
-    static int avisado = 0;
-    int l = p->tok.linha, c = p->tok.coluna;
-    if (!avisado) {
-        diag_aviso(l, c, "parse_expr ainda nao implementado: regras lidas como vazias");
-        avisado = 1;
+    int l = p->tok.linha;
+    int c = p->tok.coluna;
+    Expr *no1 = parse_seq(p);
+    Expr *alt = NULL;
+
+    if (p->tok.tipo != MT_BARRA) {
+        return no1;
     }
-    while (p->tok.tipo != MT_PV && p->tok.tipo != MT_FIM)
+
+    alt = expr_criar(E_ALT, l, c);
+    expr_adicionar(alt, no1);
+
+    while (p->tok.tipo == MT_BARRA) {
         avancar(p);
-    return expr_criar(E_VAZIO, l, c);
+        expr_adicionar(alt, parse_seq(p));
+    }
+
+    return alt;
 }
+
+/* seq = { fator } ; */
+static Expr *parse_seq(Parser *p)
+{
+    int l = p->tok.linha;
+    int c = p->tok.coluna;
+    Expr *no_seq = NULL;
+    Expr *f = NULL;
+    Expr *pai = NULL;
+    int quantidade = 0;
+
+    while (p->tok.tipo == MT_NOME_TERM || p->tok.tipo == MT_LITERAL  ||
+           p->tok.tipo == MT_NAOTERM    || p->tok.tipo == MT_ABRE_PAR ||
+           p->tok.tipo == MT_ABRE_COL   || p->tok.tipo == MT_ABRE_CHAVE) 
+    {
+        f = parse_fator(p);
+
+        if (quantidade == 0) {
+            no_seq = f;
+        } else if (quantidade == 1) {
+            pai = expr_criar_no(E_SEQ, l, c);
+            expr_adicionar(pai, no_seq);
+            expr_adicionar(pai, f);
+            no_seq = pai;
+        } else {
+            expr_adicionar(no_seq, f);
+        }
+
+        quantidade++;
+    }
+
+    if (quantidade == 0) {
+        return expr_criar(E_VAZIO, l, c);
+    }
+
+    return no_seq;
+}
+
+
+//  *   fator        = NOME_TERM | LITERAL | NAOTERM
+//  *                | "(" expr ")" | "[" expr "]" | "{" expr "}" ;
+static Expr *parse_fator(Parser *p){
+    int l = p->tok.linha;
+    int c = p->tok.coluna;
+    if (p->tok.tipo == NOME_TERM || p->tok.tipo == LITERAL || p->tok.tipo == NAOTERM){
+        
+    }
+}
+
+
 
 /* ------------------------------------------------------------------ */
 /* Secoes e regras (fornecido)                                        */

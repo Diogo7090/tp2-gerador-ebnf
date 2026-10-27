@@ -1,0 +1,6 @@
+testes/gramaticas/recursao_esquerda.ebnf:9:12: erro: esperado ';', encontrado nao terminal 'expr'
+testes/gramaticas/recursao_esquerda.ebnf:10:12: erro: esperado ';', encontrado nao terminal 'expr'
+testes/gramaticas/recursao_esquerda.ebnf:11:12: erro: esperado ';', encontrado nao terminal 'term'
+testes/gramaticas/recursao_esquerda.ebnf:12:12: erro: esperado ';', encontrado nao terminal 'item'
+testes/gramaticas/recursao_esquerda.ebnf:13:12: erro: esperado ';', encontrado '['
+status 1

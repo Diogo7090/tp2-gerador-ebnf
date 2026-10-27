@@ -1,0 +1,4 @@
+testes/gramaticas/expr.ebnf:8:12: erro: esperado ';', encontrado nao terminal 'term'
+testes/gramaticas/expr.ebnf:9:12: erro: esperado ';', encontrado nao terminal 'factor'
+testes/gramaticas/expr.ebnf:10:12: erro: esperado ';', encontrado nome de terminal 'NUM'
+status 1
