@@ -353,10 +353,10 @@ static Expr *parse_fator(Parser *p) {
         avancar(p);
         noFilho = parse_expr(p);
         if(!esperar(p, MT_FECHA_COL)) {
-
+            expr_liberar(noFilho);
+            return NULL;
         }
         
-
         return expr_unario(E_OPC, noFilho, linha, coluna);
     }
 
@@ -367,7 +367,8 @@ static Expr *parse_fator(Parser *p) {
         avancar(p);
         noFilho = parse_expr(p);
         if(!esperar(p, MT_FECHA_CHAVE)) {
-
+            expr_liberar(noFilho);
+            return NULL;
         }
 
         return expr_unario(E_REP, noFilho, linha, coluna);
@@ -380,8 +381,9 @@ static Expr *parse_fator(Parser *p) {
         avancar(p);
         noFilho = parse_expr(p);
         
-        if(esperar(p, MT_FECHA_PAR)) {
-            
+        if(!esperar(p, MT_FECHA_PAR)) {
+            expr_liberar(noFilho);
+            return NULL;
         }
 
         return noFilho;
