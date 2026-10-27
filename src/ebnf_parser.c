@@ -24,6 +24,7 @@
 #include <string.h>
 #include "ebnf_parser.h"
 #include "ebnf_lexer.h"
+#include "gramatica.h"
 #include "util.h"
 
 typedef struct {
@@ -247,4 +248,87 @@ int ebnf_analisar(Gramatica *g, const char *fonte)
     parse_secao_rules(&p);
     mtok_liberar(&p.tok);
     return diag_num_erros() == 0;
+}
+
+static Expr *parse_fator(Parser *p) {
+    int indice, linha, coluna;
+    Expr *no = NULL;
+
+    if(p->tok.tipo == MT_NAOTERM) {
+        linha = p->tok.linha;
+        coluna = p->tok.coluna; 
+
+        indice = gram_naoterminal(p->g, p->tok.texto, linha, coluna);
+
+        no = expr_simbolo(E_NAOTERM, indice, linha, coluna);
+
+        avancar(p);
+        return no;
+    }
+
+    if(p->tok.tipo == MT_NOME_TERM) {
+        linha = p->tok.linha;
+        coluna = p->tok.coluna; 
+
+        indice = gram_terminal(p->g, p->tok.texto, 0, linha, coluna);
+
+        no = expr_simbolo(E_TERM, indice, linha, coluna);
+
+        avancar(p);
+        return no;
+    }
+
+    if(p->tok.tipo == MT_LITERAL) {
+        linha = p->tok.linha;
+        coluna = p->tok.coluna; 
+        indice = gram_terminal(p->g, p->tok.texto, 1, linha, coluna);
+
+        no = expr_simbolo(E_TERM, indice, linha, coluna);
+
+        avancar(p);
+        return no;
+    }
+
+    if(p->tok.tipo == MT_ABRE_COL) {
+        linha = p->tok.linha;
+        coluna = p->tok.coluna; 
+
+        avancar(p);
+        Expr *noFilho = parse_expr(p);
+        if(!esperar(p, MT_FECHA_COL)) {
+
+        }
+        
+
+        return expr_unario(E_OPC, noFilho, linha, coluna);
+    }
+
+    if(p->tok.tipo == MT_ABRE_CHAVE) {
+        linha = p->tok.linha;
+        coluna = p->tok.coluna; 
+
+        avancar(p);
+        Expr *noFilho = parse_expr(p);
+        if(!esperar(p, MT_FECHA_CHAVE)) {
+
+        }
+
+        return expr_unario(E_REP, noFilho, linha, coluna);
+    }
+
+    if(p->tok.tipo == MT_ABRE_PAR) {
+        linha = p->tok.linha;
+        coluna = p->tok.coluna; 
+
+        avancar(p);
+        Expr *noFilho = parse_expr(p);
+        
+        if(esperar(p, MT_FECHA_PAR)) {
+            
+        }
+
+        return noFilho;
+    }
+
+    return NULL;
 }
