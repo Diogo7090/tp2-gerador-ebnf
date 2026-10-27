@@ -155,7 +155,7 @@ static Expr *parse_seq(Parser *p)
         if (quantidade == 0) {
             no_seq = f;
         } else if (quantidade == 1) {
-            pai = expr_criar_no(E_SEQ, l, c);
+            pai = expr_criar(E_SEQ, l, c);
             expr_adicionar(pai, no_seq);
             expr_adicionar(pai, f);
             no_seq = pai;
@@ -174,15 +174,6 @@ static Expr *parse_seq(Parser *p)
 }
 
 
-//  *   fator        = NOME_TERM | LITERAL | NAOTERM
-//  *                | "(" expr ")" | "[" expr "]" | "{" expr "}" ;
-static Expr *parse_fator(Parser *p){
-    int l = p->tok.linha;
-    int c = p->tok.coluna;
-    if (p->tok.tipo == NOME_TERM || p->tok.tipo == LITERAL || p->tok.tipo == NAOTERM){
-        
-    }
-}
 
 
 
@@ -318,6 +309,7 @@ int ebnf_analisar(Gramatica *g, const char *fonte)
 static Expr *parse_fator(Parser *p) {
     int indice, linha, coluna;
     Expr *no = NULL;
+    Expr *noFilho = NULL;
 
     if(p->tok.tipo == MT_NAOTERM) {
         linha = p->tok.linha;
@@ -359,7 +351,7 @@ static Expr *parse_fator(Parser *p) {
         coluna = p->tok.coluna; 
 
         avancar(p);
-        Expr *noFilho = parse_expr(p);
+        noFilho = parse_expr(p);
         if(!esperar(p, MT_FECHA_COL)) {
 
         }
@@ -373,7 +365,7 @@ static Expr *parse_fator(Parser *p) {
         coluna = p->tok.coluna; 
 
         avancar(p);
-        Expr *noFilho = parse_expr(p);
+        noFilho = parse_expr(p);
         if(!esperar(p, MT_FECHA_CHAVE)) {
 
         }
@@ -386,7 +378,7 @@ static Expr *parse_fator(Parser *p) {
         coluna = p->tok.coluna; 
 
         avancar(p);
-        Expr *noFilho = parse_expr(p);
+        noFilho = parse_expr(p);
         
         if(esperar(p, MT_FECHA_PAR)) {
             

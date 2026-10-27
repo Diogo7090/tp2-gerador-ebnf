@@ -1,3 +1,6 @@
-testes/gramaticas/conflito_ll1.ebnf:8:10: erro: esperado ';', encontrado nome de terminal 'ID'
-testes/gramaticas/conflito_ll1.ebnf:9:10: erro: esperado ';', encontrado nome de terminal 'ID'
-status 1
+NAO TERMINAL  ANULAVEL  FIRST / FOLLOW
+stmt          nao       FIRST  = {}
+                        FOLLOW = {}
+expr          nao       FIRST  = {}
+                        FOLLOW = {}
+status 0
