@@ -69,6 +69,7 @@ static TokenType normalizar(int tipo)
 
 void scanner_iniciar(FILE *entrada)
 {
+    iniciarTabelaDeStrings();
     microc_yyin = entrada;
     linha_atual = 1;
 }
@@ -96,5 +97,6 @@ Token proximo_token(void)
 void scanner_finalizar(void)
 {
     /* TODO(aluno): liberar tambem a tabela de strings do TP1. */
+    liberarTabelaDeStrings();
     microc_yylex_destroy();
 }

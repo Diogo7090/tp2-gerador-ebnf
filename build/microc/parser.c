@@ -5,9 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "microc.h"
+#include "parser.h"
 
-#define SUPORTE_ARVORE 0
+#define SUPORTE_ARVORE 1
 
 /* ---- conjuntos de tokens ---- */
 
@@ -165,115 +165,153 @@ static Token token_de_arquivo(void)
 /* programa = 'int' 'main' '(' ')' bloco ; */
 void parse_programa(void)
 {
+    arvore_entra("programa");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* bloco = '{' { declaracao } { comando } '}' ; */
 void parse_bloco(void)
 {
+    arvore_entra("bloco");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* declaracao = tipo ID [ '[' INTEGERCONST ']' ] ';' ; */
 void parse_declaracao(void)
 {
+    arvore_entra("declaracao");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* comando = comando_if | comando_for | atribuicao | comando_return | comando_print | bloco | ';' ; */
 void parse_comando(void)
 {
+    arvore_entra("comando");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* tipo = 'int' | 'char' ; */
 void parse_tipo(void)
 {
+    arvore_entra("tipo");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* comando_if = 'if' '(' expressao ')' comando [ 'else' comando ] ; */
 void parse_comando_if(void)
 {
+    arvore_entra("comando_if");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* comando_for = 'for' '(' atribuicao_interna ';' expressao ';' atribuicao_interna ')' comando ; */
 void parse_comando_for(void)
 {
+    arvore_entra("comando_for");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* atribuicao = atribuicao_interna ';' ; */
 void parse_atribuicao(void)
 {
+    arvore_entra("atribuicao");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* comando_return = 'return' [ expressao ] ';' ; */
 void parse_comando_return(void)
 {
+    arvore_entra("comando_return");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* comando_print = 'print' '(' conteudo_print ')' ';' ; */
 void parse_comando_print(void)
 {
+    arvore_entra("comando_print");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* expressao = expressao_logica ; */
 void parse_expressao(void)
 {
+    arvore_entra("expressao");
     parse_expressao_logica();
+    arvore_sai();
 }
 
 /* atribuicao_interna = ID [ '[' expressao ']' ] '=' expressao ; */
 void parse_atribuicao_interna(void)
 {
+    arvore_entra("atribuicao_interna");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* conteudo_print = STRINGCONST | expressao ; */
 void parse_conteudo_print(void)
 {
+    arvore_entra("conteudo_print");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* expressao_logica = expressao_relacional { ( '&&' | '||' ) expressao_relacional } ; */
 void parse_expressao_logica(void)
 {
+    arvore_entra("expressao_logica");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* expressao_relacional = expressao_aritmetica [ operador_relacional expressao_aritmetica ] ; */
 void parse_expressao_relacional(void)
 {
+    arvore_entra("expressao_relacional");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* expressao_aritmetica = termo { ( '+' | '-' ) termo } ; */
 void parse_expressao_aritmetica(void)
 {
+    arvore_entra("expressao_aritmetica");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* operador_relacional = '==' | '!=' | '<' | '>' | '<=' | '>=' ; */
 void parse_operador_relacional(void)
 {
+    arvore_entra("operador_relacional");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* termo = fator { ( '*' | '/' | '%' ) fator } ; */
 void parse_termo(void)
 {
+    arvore_entra("termo");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* fator = '(' expressao ')' | ID [ '[' expressao ']' ] | INTEGERCONST | CHARCONST | '!' fator ; */
 void parse_fator(void)
 {
+    arvore_entra("fator");
     /* TODO(aluno): construcao ainda nao traduzida */
+    arvore_sai();
 }
 
 /* ---- programa principal ---- */

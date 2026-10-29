@@ -17,42 +17,19 @@
  *      ./lexer test.mc 
  */ 
  
+%option prefix="microc_yy" noyywrap
 %{ 
 #include <stdio.h> 
 #include <stdlib.h> 
 #include <string.h> 
 #include <stdbool.h>
-#include "scanner01.h"
+#include "tokens.h"
  
 /* --------------------------------------------------------------------- 
  * 1. VOCABULARIO DE TOKENS (equivalente a tokens.h) 
  * ------------------------------------------------------------------- */ 
  
-typedef enum { 
-    /* Tokens fundamentais */ 
-    UNDEF, 
-    ID, 
-    END_OF_FILE, 
- 
-    /* Constantes literais */ 
-    INTEGERCONST, 
-    CHARCONST, 
-    STRINGCONST, 
- 
-    /* Operadores aritmeticos */ 
-    PLUS, MINUS, MUL, DIV, MOD, 
- 
-    /* Operadores relacionais e logicos */ 
-    EQ, NEQ, LT, GT, LEQ, GEQ, AND, OR, NOT, 
- 
-    /* Simbolos de atribuicao e pontuacao */ 
-    ASSIGN, SEMICOLON, COMMA, LPAREN, RPAREN, 
-    LBRACE, RBRACE, LBRACKET, RBRACKET, 
- 
-    /* Palavras reservadas */ 
-    MAIN, IF, ELSE, FOR, RETURN, INT, CHAR, PRINT 
-} TokenType; 
- 
+
 /* Nomes dos tokens, usados apenas pelo main() de teste abaixo para 
  * imprimir o tipo de cada token de forma legivel. Mantenha esta lista 
  * na MESMA ORDEM do enum TokenType. */ 
@@ -115,10 +92,15 @@ void adicionaString(tabelaStrings* tab) {
 }
 
 char* retornaLexema(int indice, tabelaStrings* tab) {
-    if(indice < tab->tamanho) {
-        //lançar um exceção
+    if(indice >= tab->posicaoOcupada || indice < 0) {
+        return NULL;
     }
-    return tab->listaString[indice];
+
+    if(tab->listaString[indice] != NULL) {
+        return tab->listaString[indice];
+    } else {
+        return NULL;
+    }
 }
 
 static void guarda_lexema(void) {
@@ -150,6 +132,27 @@ static int pode_ser_sinal(void) {
     return 0; 
 } 
 
+void liberarTabelaDeStrings() {
+    if(tabela.listaString == NULL) {
+        return;
+    }
+
+    for(int i = 0; i < tabela.posicaoOcupada; i++) {
+        free(tabela.listaString[i]);
+    }
+
+    free(tabela.listaString);
+
+    tabela.tamanho = 0;
+    tabela.posicaoOcupada = 0;
+    tabela.listaString = NULL;
+}
+
+void iniciarTabelaDeStrings() {
+    tabela.tamanho=100;
+    tabela.posicaoOcupada=0;
+    tabela.listaString= (char**)malloc(tabela.tamanho *sizeof(char *));
+}
 
 
 %} 
@@ -404,53 +407,49 @@ MINUS       -
  
 %% 
  
-/* ----------------------------------------------------------------------- 
- * 4. SUB-ROTINAS DO USUARIO 
- * ------------------------------------------------------------------- */ 
-
-int yywrap(void) { 
-    return 1; 
-} 
+// /* ----------------------------------------------------------------------- 
+//  * 4. SUB-ROTINAS DO USUARIO 
+//  * ------------------------------------------------------------------- */ 
  
-int main(int argc, char **argv) { 
-    tabela.tamanho=100;
-    tabela.posicaoOcupada=0;
-    tabela.listaString= (char**)malloc(tabela.tamanho *sizeof(char *));
+// int main(int argc, char **argv) { 
+//     tabela.tamanho=100;
+//     tabela.posicaoOcupada=0;
+//     tabela.listaString= (char**)malloc(tabela.tamanho *sizeof(char *));
 
 
 
 
-    if (argc < 2) { 
-        fprintf(stderr, "Uso: %s <arquivo.mc>\n", argv[0]); 
-        return 1; 
-    } 
+//     if (argc < 2) { 
+//         fprintf(stderr, "Uso: %s <arquivo.mc>\n", argv[0]); 
+//         return 1; 
+//     } 
  
-    FILE *arquivo_fonte = fopen(argv[1], "r"); 
-    if (!arquivo_fonte) { 
-        fprintf(stderr, "Erro: nao foi possivel abrir o arquivo '%s'\n", argv[1]); 
-        return 1; 
-    } 
+//     FILE *arquivo_fonte = fopen(argv[1], "r"); 
+//     if (!arquivo_fonte) { 
+//         fprintf(stderr, "Erro: nao foi possivel abrir o arquivo '%s'\n", argv[1]); 
+//         return 1; 
+//     } 
  
-    yyin = arquivo_fonte; 
+//     yyin = arquivo_fonte; 
  
-    int tipo; 
-    while ((tipo = yylex()) != END_OF_FILE) { 
-        if (tipo == UNDEF) { 
-            fprintf(stderr, "ERRO LEXICO (linha %d): %s\n", 
-                    linha_atual, microc_yylval.error_msg); 
-            continue; 
-        } 
+//     int tipo; 
+//     while ((tipo = yylex()) != END_OF_FILE) { 
+//         if (tipo == UNDEF) { 
+//             fprintf(stderr, "ERRO LEXICO (linha %d): %s\n", 
+//                     linha_atual, microc_yylval.error_msg); 
+//             continue; 
+//         } 
  
 
-        if (tipo == STRINGCONST || tipo == ID || tipo == INTEGERCONST || tipo == CHARCONST){
-            printf("Token: tipo = %-13s lexema = '%s'  linha = %d\n", nome_token[tipo], microc_yylval.symbol, linha_atual);
-        }
-        else{
-            printf("Token: tipo = %-13s lexema = '%s'  linha = %d\n", nome_token[tipo], yytext, linha_atual);
-        }
+//         if (tipo == STRINGCONST || tipo == ID || tipo == INTEGERCONST || tipo == CHARCONST){
+//             printf("Token: tipo = %-13s lexema = '%s'  linha = %d\n", nome_token[tipo], microc_yylval.symbol, linha_atual);
+//         }
+//         else{
+//             printf("Token: tipo = %-13s lexema = '%s'  linha = %d\n", nome_token[tipo], yytext, linha_atual);
+//         }
 
 
-    } 
-    fclose(arquivo_fonte); 
-    return 0; 
-}
+//     } 
+//     fclose(arquivo_fonte); 
+//     return 0; 
+// }
