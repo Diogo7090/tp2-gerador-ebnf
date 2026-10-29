@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include "tokens.h"
 
+void iniciarTabelaDeStrings();
+void liberarTabelaDeStrings();
 /* Prepara o scanner para ler de entrada (ja aberto). */
 void  scanner_iniciar(FILE *entrada);
 
