@@ -1,5 +1,5 @@
 --- testes/programas/expr/aceito_1.esperado	2026-10-27 12:22:35.937661799 -0400
-+++ build/testes/expr-aceito_1.txt.saida	2026-10-27 15:18:41.902357172 -0400
++++ build/testes/expr-aceito_1.txt.saida	2026-10-29 15:45:46.194797777 -0400
 @@ -1,2 +1,2 @@
 -entrada aceita
 -status 0

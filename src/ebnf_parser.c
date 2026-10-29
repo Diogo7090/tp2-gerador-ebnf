@@ -90,6 +90,7 @@ static Expr *parse_fator(Parser *p);
 
 
 /*
+ * Feito --------- checar se está correto -----------
  * TODO(aluno): implementar as funcoes abaixo seguindo a gramatica da
  * notacao (cabecalho deste arquivo), uma funcao por nao terminal:
  *
@@ -136,7 +137,6 @@ static Expr *parse_expr(Parser *p)
     return alt;
 }
 
-/* seq = { fator } ; */
 static Expr *parse_seq(Parser *p)
 {
     int l = p->tok.linha;
