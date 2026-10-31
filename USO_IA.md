@@ -23,3 +23,15 @@ Trecho: src/verificacao.c — verif_inalcancaveis() e verif_improdutivos()
 Finalidade: Compreender os algoritmos de busca em profundidade (DFS) para identificar não terminais inalcançáveis e de ponto fixo para identificar não terminais improdutivos, incluindo a avaliação recursiva dos tipos de expressão da árvore Expr e o tratamento das dependências entre não terminais.
 
 O que fiz: Consultei explicações conceituais, análises do raciocínio de implementação e sugestões de organização das funções auxiliares. Utilizei as orientações para desenvolver e adaptar minha própria implementação.
+
+Trecho: src/verificacao.c (implementação das funções verif_inalcancaveis e verif_improdutivos, auxiliares recursivas) e gerenciamento de versionamento (Git)
+Finalidade: Auxiliar na concepção e validação dos algoritmos de verificação semântica — especificamente busca em profundidade (DFS) para inalcançáveis e ponto fixo para improdutivos —, além de orientar a resolução de conflitos de merge e o fluxo de sincronização entre as branches local e remota.
+O que fiz: Consultei explicações conceituais, orientações de estruturação de código e diretrizes para o fluxo de versionamento, adaptando e aplicando os conceitos no desenvolvimento e organização da etapa.
+
+Ferramenta: Gemini (Google)
+
+Trecho: src/verificacao.c — verif_recursao_esquerda() e recursaoAEsq()
+
+Finalidade: Auxiliar na concepção do algoritmo de detecção de recursão à esquerda (direta e indireta) em árvores de expressão, contemplando o avanço em sequências (`E_SEQ`) com suporte a prefixos anuláveis (`anulavel`), controle de histórico para evitar loops em ciclos e prevenção de falhas de segmentação (*Segmentation Faults*) com checagens de ponteiros nulos e limites de vetores.
+
+O que fiz: Consultei sugestões de estruturação de código, análises de fluxo para tratamento de nós anuláveis e diretrizes de blindagem contra erros de memória, adaptando e aplicando os ajustes diretamente na minha implementação.

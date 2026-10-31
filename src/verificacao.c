@@ -28,6 +28,8 @@
 static void analisarNoReferencia(Expr *no, void *contexto);
 static void visitarNaoTerminal(int indice, Gramatica *g, int *visitados);
 static int avaliaNohProd(Expr *no, int *contexto);
+int recursaoAEsq(Gramatica *gramatica, Expr *no, int simboloReferencia, int *visitados);
+
 typedef struct {
     Gramatica *gramatica;
     int *visitados;
@@ -118,7 +120,7 @@ static int verif_inalcancaveis(Gramatica *g)
     free(visitados);
     (void) g;
 
-    return 0;
+    return erros;
 }
 
 /* TODO(aluno): emitir um ERRO para cada nao terminal definido que nao
@@ -191,9 +193,36 @@ static int verif_improdutivos(Gramatica *g)
  * calculado quando esta funcao e chamada. Reporte um erro por nao
  * terminal recursivo e retorne o numero de erros. */
 int verif_recursao_esquerda(Gramatica *g)
-{
+{   
+    /*
+        Direta se primeiro filho for ele mesmo marca como recursivo
+        indireta se E-NTERM, seguir o filho a ESQ ate retorna a sim mesmo ou ter um inicial TERM
+        ou se OPC_, REP, VAZIO, ou anulavel analisa o proximo
+
+    */
+    int i, j, erros, *visitados;
+    erros = 0;
+    visitados = calloc(g->nnts, sizeof(int));
+
+    for(i = 0; i < g->nnts; i++) {
+        if(g->nts[i].regra == NULL){
+            continue;
+        }
+
+        for(j = 0; g->nnts; j++) {
+            visitados[j] = 0;
+        }
+
+        visitados[j] = 1;
+        if(recursaoAEsq(g, g->nts[i].regra, i, visitados)) {
+            diag_erro(g->nts[i].linha, g->nts[i].linha, "nao terminal %s tem recursao a esquerda", g->nts[i].nome);
+            erros++;
+        }
+    }
+
+    free(visitados);
     (void) g;
-    return 0;
+    return erros;
 }
 
 int verif_basica(Gramatica *g, int modo_microc)
@@ -299,3 +328,77 @@ static int avaliaNohProd(Expr *no, int *listaDeProd) {
     return ehProd;
 }
 
+int recursaoAEsq(Gramatica *gramatica, Expr *no, int simboloReferencia, int *visitados) {
+
+    int i;
+
+    if(no == NULL) {
+        return 0;
+    }
+
+    switch (no->tipo) {
+        case E_TERM: {
+            return 0;
+            break;
+
+        } case E_NAOTERM: {
+            int ehRec = 0;
+            if(no->simbolo == simboloReferencia) {
+                return 1;
+            } 
+
+            if(visitados[no->simbolo]) {
+                return 0;
+            }
+
+            visitados[no->simbolo] = 1;
+            if(gramatica->nts[no->simbolo].regra != NULL) {
+                ehRec = recursaoAEsq(gramatica, gramatica->nts[no->simbolo].regra, simboloReferencia, visitados);
+            }
+
+            visitados[no->simbolo] = 0;
+            return ehRec;
+        }
+        case E_SEQ: {
+            if(no->nfilhos <= 0 || no->filhos == NULL) {
+                return 0;
+            }
+            for(i = 0; i < no->nfilhos; i++) {
+                if(recursaoAEsq(gramatica, no->filhos[i], simboloReferencia, visitados)) {
+                    return 1;
+                }
+
+                if(no->filhos[i]->tipo != E_NAOTERM || !gramatica->nts[no->filhos[i]->simbolo].anulavel) {
+                    break;
+                }
+            }
+            break;
+        } 
+        case E_ALT: {
+            if(no->nfilhos <= 0 || no->filhos == NULL) {
+                return 0;
+            }
+            for(i = 0; i < no->nfilhos; i++) {
+                if(recursaoAEsq(gramatica, no->filhos[i], simboloReferencia, visitados)){
+                    return 1;
+                }
+            }
+            break;
+        } 
+        case E_OPC: {
+            return 0;
+            break;
+        } 
+        case E_REP: {
+            return 0;
+            break;
+        } 
+        case E_VAZIO: {
+            return 0;
+            break;
+        }
+        default:
+            return 0;
+    }
+    return 0;
+}
