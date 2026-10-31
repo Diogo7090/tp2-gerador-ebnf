@@ -13,6 +13,7 @@
  * A duplicidade de definicoes ja e detectada durante a leitura
  * (ebnf_parser.c).
  */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "verificacao.h"
@@ -26,11 +27,16 @@
 
 static void analisarNoReferencia(Expr *no, void *contexto);
 static void visitarNaoTerminal(int indice, Gramatica *g, int *visitados);
+static int avaliaNohProd(Expr *no, void *contexto);
 typedef struct {
     Gramatica *gramatica;
     int *visitados;
 } contextoAnalise;
 
+typedef struct {
+    int *listaDeProd;
+    int noAtualEhProd;
+} contextoNoProd;
 
 static int verif_indefinidos(Gramatica *g)
 {
@@ -124,8 +130,66 @@ static int verif_inalcancaveis(Gramatica *g)
  * e uma alternativa exige ao menos um. Retorne o numero de erros. */
 static int verif_improdutivos(Gramatica *g)
 {
-    (void) g;
-    return 0;
+    /*
+        visita cada nterm e sua regra e percorrer a arvore se pelo menos uma subarvore for prod o nterm e prod
+        de alt gerar um um cadeia é produtivo
+        opc é produtivo - gera cadeia vaiza
+        rep é prod - idem
+        e_vazio - prod
+        term e prod
+        seq inteira precisa ser prod
+        alt pelo menos 1
+
+        1- listaDeProd, cada indice representa u nterm se é prod ou nao todos prod inicialmente
+        2- lista dupla, lista indice do n-term cada posicao indica se depende de outra na prod
+            se depender o resultado vai o mesmo do listaDeProd se nao tiver sido marcado como prod
+            se nenhum que depender gerar prod é improd
+        
+
+
+    */
+    int *listaDeProd, i, mudou, erros;
+    contextoNoProd _contexto;
+
+    erros = 0;
+    listaDeProd = calloc(g->nnts, sizeof(int));
+    _contexto.listaDeProd = listaDeProd;
+    _contexto.noAtualEhProd = 0;
+
+    for(i = 0; i < g->nnts; i++) {
+        listaDeProd[i] = 0;
+    }
+    mudou = 1;
+
+    while(mudou) {
+        mudou = 0;
+
+        for(i = 0; i < g->nnts; i++) {
+            if(listaDeProd[i]) {
+                continue;
+            }
+            
+            if(g->nts[i].regra != NULL) {
+                _contexto.noAtualEhProd = 0;
+
+                if(avaliaNohProd(g->nts[i].regra, listaDeProd)) {
+                    listaDeProd[i] = 1;
+                    mudou = 1;
+                }
+            }
+        }
+    }
+
+    for(i = 0; i < g->nnts; i++) {
+        if(!listaDeProd[i]) {
+            diag_erro(g->nts[i].linha, g->nts[i].linha, "Não terminal %s e improdutivo", g->nts[i].nome);
+            erros++;
+        }
+    }
+
+    free(listaDeProd);
+    (void) g; 
+    return erros;
 }
 
 /* TODO(aluno): detectar recursao a esquerda direta (a = a ...) e
@@ -172,6 +236,73 @@ static void analisarNoReferencia(Expr *no, void *contexto) {
     contextoAnalise *_contexto = contexto;
     if(no->tipo == E_NAOTERM) {
         visitarNaoTerminal(no->simbolo, _contexto->gramatica,_contexto->visitados);
+    }
+}
+
+static int avaliaNohProd(Expr *no, void *contexto) {
+    int i;
+    contextoNoProd *_contexto = contexto;
+    if(no == NULL) {
+        _contexto->noAtualEhProd = 0;
+        return 0;
+    } 
+
+    printf("no tipo %d\n", no->tipo);
+
+    switch(no->tipo) {
+        case E_TERM: {
+            _contexto->noAtualEhProd = 1;
+            break;
+        } 
+        case E_NAOTERM: {
+            _contexto->noAtualEhProd = _contexto->listaDeProd[no->simbolo];
+            break;
+        } 
+        case E_SEQ: {
+            int quantFilhosProd = 0;
+            _contexto->noAtualEhProd = 0;
+            for(i = 0; i < no->nfilhos; i++) {
+                expr_percorrer(no->filhos[i], avaliaNohProd, _contexto);
+
+                if(_contexto->noAtualEhProd) {
+                    quantFilhosProd++;
+                }
+            }
+
+            if(quantFilhosProd == no->nfilhos) {
+                _contexto->noAtualEhProd = 1;
+            }
+
+            break;
+        } 
+        case E_ALT: {
+            int algumProd = 0;
+
+            for(i = 0; i < no->nfilhos; i++) {
+                if(_contexto->noAtualEhProd) {
+                    algumProd = 1;
+                    break;
+                }
+            }
+
+            _contexto->noAtualEhProd = algumProd;
+            break;
+        } 
+        case E_OPC: {
+            _contexto->noAtualEhProd = 1;
+            break;
+        } 
+        case E_REP: {
+            _contexto->noAtualEhProd = 1;
+            break;
+        } 
+        case E_VAZIO: {
+            _contexto->noAtualEhProd = 1;
+            break;
+        }
+        default: 
+            _contexto->noAtualEhProd = 1;
+            break;
     }
 }
 
