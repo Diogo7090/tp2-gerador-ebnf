@@ -16,12 +16,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include "verificacao.h"
+#include "gramatica.h"
 #include "microc_mapa.h"
 #include "util.h"
 
 /* ------------------------------------------------------------------ */
 /* Fornecido                                                          */
 /* ------------------------------------------------------------------ */
+
+static void analisarNoReferencia(Expr *no, void *contexto);
+static void visitarNaoTerminal(int indice, Gramatica *g, int *visitados);
+typedef struct {
+    Gramatica *gramatica;
+    int *visitados;
+} contextoAnalise;
+
 
 static int verif_indefinidos(Gramatica *g)
 {
@@ -73,8 +82,38 @@ static int verif_terminais(Gramatica *g, int modo_microc)
  * o inicial e, ate um ponto fixo, marque todo nao terminal que aparece
  * na regra de um nao terminal ja marcado (expr_percorrer ajuda). */
 static int verif_inalcancaveis(Gramatica *g)
-{
+{   
+    /*  
+    lembrete pra mim, depois tento deixar mais bonito
+    retornar quantidade nao alcaçaveis
+    iniciar pelo inicial
+    busca em profundidade, expandindo cada nao terminal de acordo com sua regra
+    se aplicado todas sua produções, nao expandir mais
+    ao percorrer todos opções de n-term o que nao nao foram atingindo a partir do inicial nao é alcançavel
+    usar vetor regras de nao nterm de gramatica,
+    acho que nao precisa criar arvore extra apenas usar indice da lista de n-term e recursividade
+    lista de nao A 
+    */
+    int erros, quantNTerm, *visitados, i;
+    if(visitados == NULL) {
+    }
+    visitados = calloc(g->nnts, sizeof(int));
+    erros = 0;
+    quantNTerm = g->nnts;
+
+    visitados[g->inicial] = 1;
+    visitarNaoTerminal(g->inicial, g, visitados);
+    
+    for(i = 0; i < quantNTerm; i++) {
+        if(!visitados[i] && g->nts[i].linha_def == 1) {
+            erros++;
+        }
+    }
+
+    free(visitados);
     (void) g;
+
+    return erros;
     return 0;
 }
 
@@ -114,3 +153,25 @@ int verif_basica(Gramatica *g, int modo_microc)
         erros += verif_improdutivos(g);
     return erros;
 }
+
+
+static void visitarNaoTerminal(int indice, Gramatica *gramatica, int *visitados) {
+    contextoAnalise _contexto;
+    _contexto.gramatica = gramatica;
+    _contexto.visitados = visitados;
+
+    if(!visitados[indice]) {
+        visitados[indice] = 1;
+        
+        expr_percorrer(gramatica->nts[indice].regra, analisarNoReferencia, &_contexto);
+    }
+}
+
+
+static void analisarNoReferencia(Expr *no, void *contexto) {
+    contextoAnalise *_contexto = contexto;
+    if(no->tipo == E_NAOTERM) {
+        visitarNaoTerminal(no->simbolo, _contexto->gramatica,_contexto->visitados);
+    }
+}
+
