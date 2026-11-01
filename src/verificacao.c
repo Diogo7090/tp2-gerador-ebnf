@@ -28,7 +28,7 @@
 static void analisarNoReferencia(Expr *no, void *contexto);
 static void visitarNaoTerminal(int indice, Gramatica *g, int *visitados);
 static int avaliaNohProd(Expr *no, int *contexto);
-int recursaoAEsq(Gramatica *gramatica, Expr *no, int simboloReferencia, int *visitados);
+int recursaoAEsq(Gramatica *gramatica, Expr *no, int simboloReferencia, int *visitados, int ehDireto);
 
 typedef struct {
     Gramatica *gramatica;
@@ -200,7 +200,7 @@ int verif_recursao_esquerda(Gramatica *g)
         ou se OPC_, REP, VAZIO, ou anulavel analisa o proximo
 
     */
-    int i, j, erros, *visitados;
+    int i, j, erros, *visitados, resultado;
     erros = 0;
     visitados = calloc(g->nnts, sizeof(int));
 
@@ -209,14 +209,19 @@ int verif_recursao_esquerda(Gramatica *g)
             continue;
         }
 
-        for(j = 0; g->nnts; j++) {
+        for(j = 0; j < g->nnts; j++) {
             visitados[j] = 0;
         }
 
-        visitados[j] = 1;
-        if(recursaoAEsq(g, g->nts[i].regra, i, visitados)) {
-            diag_erro(g->nts[i].linha, g->nts[i].linha, "nao terminal %s tem recursao a esquerda", g->nts[i].nome);
+        visitados[i] = 1;
+        resultado = recursaoAEsq(g, g->nts[i].regra, i, visitados, 1);
+
+        if(resultado == 1) {
+            diag_erro(g->nts[i].regra->linha, 0, "nao terminal %s tem recursao a esquerda direta", g->nts[i].nome);
             erros++;
+        } else if (resultado > 1 || resultado == 2) {
+            diag_erro(g->nts[i].regra->linha, 0, "nao terminal %s tem recursao a esquerda indireta", g->nts[i].nome);
+            erros++;            
         }
     }
 
@@ -328,7 +333,7 @@ static int avaliaNohProd(Expr *no, int *listaDeProd) {
     return ehProd;
 }
 
-int recursaoAEsq(Gramatica *gramatica, Expr *no, int simboloReferencia, int *visitados) {
+int recursaoAEsq(Gramatica *gramatica, Expr *no, int simboloReferencia, int *visitados, int ehDireto) {
 
     int i;
 
@@ -344,7 +349,7 @@ int recursaoAEsq(Gramatica *gramatica, Expr *no, int simboloReferencia, int *vis
         } case E_NAOTERM: {
             int ehRec = 0;
             if(no->simbolo == simboloReferencia) {
-                return 1;
+                return ehDireto;
             } 
 
             if(visitados[no->simbolo]) {
@@ -353,34 +358,38 @@ int recursaoAEsq(Gramatica *gramatica, Expr *no, int simboloReferencia, int *vis
 
             visitados[no->simbolo] = 1;
             if(gramatica->nts[no->simbolo].regra != NULL) {
-                ehRec = recursaoAEsq(gramatica, gramatica->nts[no->simbolo].regra, simboloReferencia, visitados);
+                ehRec = recursaoAEsq(gramatica, gramatica->nts[no->simbolo].regra, simboloReferencia, visitados, 2);
             }
 
             visitados[no->simbolo] = 0;
             return ehRec;
         }
         case E_SEQ: {
+            int resultado = 0;
             if(no->nfilhos <= 0 || no->filhos == NULL) {
                 return 0;
             }
             for(i = 0; i < no->nfilhos; i++) {
-                if(recursaoAEsq(gramatica, no->filhos[i], simboloReferencia, visitados)) {
-                    return 1;
+                resultado = recursaoAEsq(gramatica, no->filhos[i], simboloReferencia, visitados, ehDireto);
+                if(resultado != 0) {
+                    return resultado;
                 }
 
-                if(no->filhos[i]->tipo != E_NAOTERM || !gramatica->nts[no->filhos[i]->simbolo].anulavel) {
+                if(!no->filhos[i]->anulavel) {
                     break;
                 }
             }
             break;
         } 
         case E_ALT: {
+            int resultado = 0;
             if(no->nfilhos <= 0 || no->filhos == NULL) {
                 return 0;
             }
             for(i = 0; i < no->nfilhos; i++) {
-                if(recursaoAEsq(gramatica, no->filhos[i], simboloReferencia, visitados)){
-                    return 1;
+                resultado = recursaoAEsq(gramatica, no->filhos[i], simboloReferencia, visitados, ehDireto);
+                if(resultado != 0){
+                    return resultado;
                 }
             }
             break;
