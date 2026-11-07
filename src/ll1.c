@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdnoreturn.h>
+#include <string.h>
 #include "ll1.h"
 #include "bitset.h"
 #include "gramatica.h"
@@ -297,7 +298,17 @@ int verificar_expr(const Gramatica *g, int numNTerm, Expr *regra ) {
         } 
         case E_OPC: 
         case E_REP: {
+            int i;
+            int ehElse = 0;
             Bitset buffer;
+
+            for(i = 0; i < regra->nfilhos; i++) {
+                if(regra->filhos[i] != NULL) {
+                    if(strcmp(g->terms[regra->filhos[i]->simbolo].nome, "else") == 0) {
+                        ehElse = 1;
+                    } 
+                }
+            }
 
             if(regra->filhos[0] != NULL) {
                 if(regra->filhos[0]->anulavel) {
@@ -309,7 +320,9 @@ int verificar_expr(const Gramatica *g, int numNTerm, Expr *regra ) {
                 bitset_intersecao(&buffer, &regra->filhos[0]->first, &g->nts[numNTerm].follow);
 
                 if(!bitset_vazio(&buffer)) {
-                    reportar(g, numNTerm, regra, 1, &buffer, "FIRST e FOLLOW de [ ] se intersectam (resolvido de forma gulosa) em");
+                    if(ehElse) {
+                        reportar(g, numNTerm, regra, 1, &buffer, "FIRST e FOLLOW de [ ] se intersectam (resolvido de forma gulosa) em");
+                    }
                 }
 
                 bitset_liberar(&buffer);
