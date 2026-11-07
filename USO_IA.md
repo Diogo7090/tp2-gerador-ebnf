@@ -43,3 +43,8 @@ Trecho: src/ll1.c — ll1_verificar() e verificar_expr()
 Finalidade: Auxiliar na modelagem da travessia recursiva por descida (verificar_expr) para validação de conflitos LL(1) em árvores de expressão EBNF, mapeando condições de interseção entre conjuntos FIRST e FOLLOW para construções opcionais e de repetição (E_OPC/E_REP), além de estruturar o preenchimento e a verificação de colisões na tabela preditiva.
 
 O que fiz: Consultei orientações lógicas para o mapeamento e validação cruzada de bitsets, estratégias de travessia recursiva em nós compostos e critérios de conformidade de mensagens de diagnóstico com a suite de testes, adaptando e aplicando os conceitos diretamente na implementação do código-fonte.
+
+Ferramenta: Gemini
+Trecho:     src/microc_mapa.c (função microc_carregar_tokens_h)
+Finalidade: Auxiliar na conceção e refinamento da lógica de parsing do ficheiro de tokens (tokens.h), incluindo o tratamento de comentários de linha e de bloco, deteção de blocos typedef enum e extração correta dos identificadores de tokens.
+O que fiz:  Adaptado

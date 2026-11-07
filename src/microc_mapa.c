@@ -60,15 +60,101 @@ static void adicionar_nome(const char *s, size_t n)
  * explicitos ("X = 3"). Retorne 0 em caso de sucesso.
  * Enquanto nao implementada, a verificacao dos nomes e pulada. */
 int microc_carregar_tokens_h(const char *caminho)
-{
-    static int avisado = 0;
-    (void) adicionar_nome;
-    if (!avisado) {
-        diag_aviso(0, 0, "microc_carregar_tokens_h ainda nao implementado: nomes "
-                   "de %s nao verificados", caminho ? caminho : "tokens.h");
-        avisado = 1;
+{   
+    char *conteudo = NULL;
+    char *charc = NULL;
+    int ehIntEnum = 0;
+
+    if(caminho == NULL) {
+        return -1;
     }
-    return -1;
+
+    conteudo = ler_arquivo(caminho);
+    if(conteudo == NULL) {
+        return -1;
+    }
+
+    charc = conteudo;
+
+    while(*charc != '\0') {
+        if(*charc == '/' && *(charc + 1) == '/') {
+            while(*charc != '\0' && *(charc+1) != '\n') {
+                charc++;
+            }
+            continue;
+        }
+
+        if(*charc == '/' && *(charc + 1) == '*') {
+            charc+=2;
+            while(charc != NULL && (*charc != '*' && *(charc + 1) != '/')) {
+                charc++;
+            }
+
+            if(*charc != '\0') {
+                charc++;
+            }
+            continue;
+        }
+
+        if(strncmp(charc, "typedef", 7) == 0) {
+            while(*charc != '\0' && isspace((unsigned char)*charc)) {
+                charc++;
+            }
+            if(strncmp(charc, "enum", 4) == 0) {
+                while(*charc != '\0' && isspace((unsigned char)*charc)) {
+                    charc++;
+                }
+                if(*charc == '{') {
+                    ehIntEnum = 1;
+                }
+            }
+            continue;
+        }
+
+        if(*charc == '}') {
+            ehIntEnum = 0;
+            charc++;
+            continue;
+        }
+
+        if(isalpha((unsigned long) *charc) && ehIntEnum == 1) {
+            char *inicio = charc;
+            int local = 0;
+
+            while(isalpha((unsigned long) *charc)) {
+                charc++;
+            }
+            local = charc - inicio;
+            adicionar_nome(inicio, local);
+
+            while(*charc != '\0' && isspace((unsigned char)*charc)) {
+                charc++;
+            }
+            
+            if(*charc == '=') {
+                charc++;
+
+                while(*charc != '\0' && *charc != ',' && *charc != '}' ) {
+                    charc++;
+                }
+            }
+            if(*charc == ',') {
+                charc++;
+            }
+
+            continue;
+        }
+
+        while(*charc != '\0' && isspace((unsigned char)*charc)) {
+            charc++;
+        }
+
+        charc++;
+
+    }
+    free(conteudo);
+
+    return 0;
 }
 
 int microc_token_existe(const char *nome)
