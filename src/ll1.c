@@ -214,6 +214,11 @@ void liberarRecursos(const Gramatica *g, noRegra*** tabelaPreditiva) {
             liberarCelulas(tabelaPreditiva[i][j]);
         }
     }
+    for(i = 0; i < g->nnts; i++) {
+        free(tabelaPreditiva[i]);
+    }
+
+    free(tabelaPreditiva);
 }
 
 void liberarCelulas(noRegra *celula) {
