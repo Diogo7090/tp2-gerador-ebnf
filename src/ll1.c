@@ -275,7 +275,7 @@ int verificar_expr(const Gramatica *g, int numNTerm, Expr *regra ) {
                             bitset_iniciar(&buffer, g->nterms);
                             bitset_intersecao(&buffer, &regra->filhos[i]->first, &regra->filhos[j]->first);
                             if(!bitset_vazio(&buffer)) {
-                                reportar(g, numNTerm, regra, 0, &buffer, "as producoes %d e %d se intersectam no first", i, j);
+                                reportar(g, numNTerm, regra, 0, &buffer, "alternativas %d e %d comecam com", i + 1, j + 1);
                                 erros++;
                             }
                             bitset_liberar(&buffer);
@@ -309,7 +309,7 @@ int verificar_expr(const Gramatica *g, int numNTerm, Expr *regra ) {
                 bitset_intersecao(&buffer, &regra->filhos[0]->first, &g->nts[numNTerm].follow);
 
                 if(!bitset_vazio(&buffer)) {
-                    reportar(g, numNTerm, regra, 1, &buffer, "intesercação entre first e follow em construção e E_REP/E_OPC");
+                    reportar(g, numNTerm, regra, 1, &buffer, "FIRST e FOLLOW de [ ] se intersectam (resolvido de forma gulosa) em");
                 }
 
                 bitset_liberar(&buffer);

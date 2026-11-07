@@ -35,3 +35,11 @@ Trecho: src/verificacao.c — verif_recursao_esquerda() e recursaoAEsq()
 Finalidade: Auxiliar na concepção do algoritmo de detecção de recursão à esquerda (direta e indireta) em árvores de expressão, contemplando o avanço em sequências (`E_SEQ`) com suporte a prefixos anuláveis (`anulavel`), controle de histórico para evitar loops em ciclos e prevenção de falhas de segmentação (*Segmentation Faults*) com checagens de ponteiros nulos e limites de vetores.
 
 O que fiz: Consultei sugestões de estruturação de código, análises de fluxo para tratamento de nós anuláveis e diretrizes de blindagem contra erros de memória, adaptando e aplicando os ajustes diretamente na minha implementação.
+
+Ferramenta: Gemini (Google)
+
+Trecho: src/ll1.c — ll1_verificar() e verificar_expr()
+
+Finalidade: Auxiliar na modelagem da travessia recursiva por descida (verificar_expr) para validação de conflitos LL(1) em árvores de expressão EBNF, mapeando condições de interseção entre conjuntos FIRST e FOLLOW para construções opcionais e de repetição (E_OPC/E_REP), além de estruturar o preenchimento e a verificação de colisões na tabela preditiva.
+
+O que fiz: Consultei orientações lógicas para o mapeamento e validação cruzada de bitsets, estratégias de travessia recursiva em nós compostos e critérios de conformidade de mensagens de diagnóstico com a suite de testes, adaptando e aplicando os conceitos diretamente na implementação do código-fonte.
