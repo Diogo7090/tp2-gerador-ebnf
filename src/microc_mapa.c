@@ -65,19 +65,28 @@ int microc_carregar_tokens_h(const char *caminho)
     char *charc = NULL;
     int ehIntEnum = 0;
 
-    if(caminho == NULL) {
-        return -1;
+    (void)caminho;
+ 
+    conteudo = ler_arquivo("microc/tokens.h");
+    if(conteudo == NULL) {
+        conteudo = ler_arquivo("../microc/tokens.h");
     }
 
-    conteudo = ler_arquivo(caminho);
+    if(conteudo == NULL) {
+        conteudo = ler_arquivo("tokens.h");
+    }
+    if(conteudo == NULL && caminho != NULL) {
+        conteudo = ler_arquivo(caminho);
+    }
+
     if(conteudo == NULL) {
         return -1;
     }
-
     charc = conteudo;
 
     while(*charc != '\0') {
         if(*charc == '/' && *(charc + 1) == '/') {
+            charc+=2;
             while(*charc != '\0' && *(charc+1) != '\n') {
                 charc++;
             }
@@ -86,26 +95,29 @@ int microc_carregar_tokens_h(const char *caminho)
 
         if(*charc == '/' && *(charc + 1) == '*') {
             charc+=2;
-            while(charc != NULL && (*charc != '*' && *(charc + 1) != '/')) {
+            while(*charc != '\0' && !(*charc == '*' && *(charc + 1) == '/')) {
                 charc++;
             }
 
             if(*charc != '\0') {
-                charc++;
+                charc+=2;
             }
             continue;
         }
 
-        if(strncmp(charc, "typedef", 7) == 0) {
+        if(ehIntEnum == 0 && strncmp(charc, "typedef", 7) == 0) {
+            charc += 7;
             while(*charc != '\0' && isspace((unsigned char)*charc)) {
                 charc++;
             }
             if(strncmp(charc, "enum", 4) == 0) {
+                charc += 4;
                 while(*charc != '\0' && isspace((unsigned char)*charc)) {
                     charc++;
                 }
                 if(*charc == '{') {
                     ehIntEnum = 1;
+
                 }
             }
             continue;
@@ -117,20 +129,27 @@ int microc_carregar_tokens_h(const char *caminho)
             continue;
         }
 
-        if(isalpha((unsigned long) *charc) && ehIntEnum == 1) {
+        if(ehIntEnum == 1 && (isalpha((unsigned char) *charc) || *charc == '_')) {
             char *inicio = charc;
             int local = 0;
+            char buffer[256];
 
-            while(isalpha((unsigned long) *charc)) {
+            while(*charc != '\0' && (isalnum((unsigned char) *charc) || *charc == '_')) {
                 charc++;
             }
+
             local = charc - inicio;
+            if(local >  0 && local < (int) sizeof(buffer)) {
+                memcpy(buffer, inicio, local);
+                buffer[local] = '\0';
+                adicionar_nome(buffer, local);
+            }
             adicionar_nome(inicio, local);
 
-            while(*charc != '\0' && isspace((unsigned char)*charc)) {
+            while(*charc != '\0' && isspace((unsigned char) *charc)) {
                 charc++;
             }
-            
+
             if(*charc == '=') {
                 charc++;
 

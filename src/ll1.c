@@ -303,10 +303,12 @@ int verificar_expr(const Gramatica *g, int numNTerm, Expr *regra ) {
             Bitset buffer;
 
             for(i = 0; i < regra->nfilhos; i++) {
-                if(regra->filhos[i] != NULL) {
-                    if(strcmp(g->terms[regra->filhos[i]->simbolo].nome, "else") == 0) {
-                        ehElse = 1;
-                    } 
+                if(regra->filhos[i] != NULL && regra->filhos[i]->simbolo >= 0 && regra->filhos[i]->simbolo < g->nterms) {
+                    if(g->terms[regra->filhos[i]->simbolo].nome != NULL) {
+                        if(strcmp(g->terms[regra->filhos[i]->simbolo].nome, "else") == 0) {
+                            ehElse = 1;
+                        } 
+                    }
                 }
             }
 
