@@ -298,19 +298,18 @@ int verificar_expr(const Gramatica *g, int numNTerm, Expr *regra ) {
         } 
         case E_OPC: 
         case E_REP: {
-            int i;
             int ehElse = 0;
             Bitset buffer;
+            Expr *filho = regra->filhos[0];
 
-            for(i = 0; i < regra->nfilhos; i++) {
-                if(regra->filhos[i] != NULL && regra->filhos[i]->simbolo >= 0 && regra->filhos[i]->simbolo < g->nterms) {
-                    if(g->terms[regra->filhos[i]->simbolo].nome != NULL) {
-                        if(strcmp(g->terms[regra->filhos[i]->simbolo].nome, "else") == 0) {
-                            ehElse = 1;
-                        } 
-                    }
-                }
+            while(filho != NULL && filho->tipo == E_SEQ && filho->nfilhos > 0) {
+                filho = filho->filhos[0];
             }
+
+            if(filho != NULL && filho->tipo == E_TERM && filho->simbolo >= 0 && filho->simbolo < g->nterms && g->terms[filho->simbolo].nome != NULL && strcmp(g->terms[filho->simbolo].nome, "else") == 0 ) {
+                ehElse = 1;
+            }
+
 
             if(regra->filhos[0] != NULL) {
                 if(regra->filhos[0]->anulavel) {

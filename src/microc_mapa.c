@@ -87,7 +87,7 @@ int microc_carregar_tokens_h(const char *caminho)
     while(*charc != '\0') {
         if(*charc == '/' && *(charc + 1) == '/') {
             charc+=2;
-            while(*charc != '\0' && *(charc+1) != '\n') {
+            while(*charc != '\0' && *charc != '\n') {
                 charc++;
             }
             continue;
@@ -161,10 +161,6 @@ int microc_carregar_tokens_h(const char *caminho)
             }
 
             continue;
-        }
-
-        while(*charc != '\0' && isspace((unsigned char)*charc)) {
-            charc++;
         }
 
         charc++;
