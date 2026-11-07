@@ -144,7 +144,6 @@ int microc_carregar_tokens_h(const char *caminho)
                 buffer[local] = '\0';
                 adicionar_nome(buffer, local);
             }
-            adicionar_nome(inicio, local);
 
             while(*charc != '\0' && isspace((unsigned char) *charc)) {
                 charc++;
