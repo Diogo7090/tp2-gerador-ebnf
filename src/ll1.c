@@ -86,10 +86,16 @@ int ll1_verificar(const Gramatica *g)
 
 
     noRegra ***tabelaPreditiva = (noRegra***) calloc(g->nnts, sizeof(noRegra**));
+    if(tabelaPreditiva == NULL) {
+        fprintf(stderr, "Erro ao alocar tabela preditiva");
+        exit(EXIT_FAILURE);
+    }
+
     for(i = 0; i < g->nnts; i++) {
         tabelaPreditiva[i] = (noRegra**) calloc(g->nterms, sizeof(noRegra*));
         if(tabelaPreditiva[i] == NULL) {
-            printf("Erro alocar alocar coluna\n");
+            fprintf(stderr,"Erro alocarc coluna\n");
+            exit(EXIT_FAILURE);
         }
     }
 
