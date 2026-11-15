@@ -48,3 +48,8 @@ Ferramenta: Gemini
 Trecho:     src/microc_mapa.c (função microc_carregar_tokens_h)
 Finalidade: Auxiliar na conceção e refinamento da lógica de parsing do ficheiro de tokens (tokens.h), incluindo o tratamento de comentários de linha e de bloco, deteção de blocos typedef enum e extração correta dos identificadores de tokens.
 O que fiz:  Adaptado
+
+Ferramenta: Gemini (Google)
+Trecho:     src/codegen.c — função gerar_posicao_e_avancar e tratamento de erros léxicos (UNDEF) no modo Micro C
+Finalidade: Corrigir a lógica de geração de código em C para o parser, implementando a verificação do token UNDEF e a comparação de string com strcmp para emitir corretamente a mensagem "String nao terminada" exigida pelos testes oficiais do Micro C.
+O que fiz: Adaptado e aplicado na implementação da rotina de geração de código do compilador.

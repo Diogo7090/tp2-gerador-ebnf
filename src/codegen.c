@@ -1108,8 +1108,12 @@ static void gerar_posicao_e_avancar(FILE *f, int microc)
     if (microc) {
         fputs("        tok = proximo_token();\n", f);
         fputs("    if (tok.tipo == UNDEF) {\n", f);
-        fputs("        fprintf(stderr, \"linha %d: erro lexico: %s\\n\", tok.linha, tok.lexema);\n", f);
-        fputs("        exit(EXIT_FAILURE);\n    }\n", f);
+        fputs("         if(strcmp(tok.lexema, \"\\\"\") == 0) {\n", f);
+        fputs("             fprintf(stderr, \"linha %d: erro lexico: String nao terminada\\n\", tok.linha);\n", f);
+        fputs("         } else {\n", f);
+        fputs("             fprintf(stderr, \"linha %d: erro lexico: %s\\n\", tok.linha, tok.lexema);\n", f);
+        fputs("         }\n", f);
+        fputs("         exit(EXIT_FAILURE);\n    }\n", f);
     } else {
         fputs("        tok = proximo_token_gerado();\n", f);
     }
