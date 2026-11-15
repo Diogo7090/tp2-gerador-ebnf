@@ -272,6 +272,9 @@ static void emit_erro(Emissor *em, const Bitset *esperados)
 
 static void gen_expr(Emissor *em, const Gramatica *g, const Expr *e)
 {
+    int i;
+    int indice_anulavel = -1;
+    int primeira_opcao = 1;
 
     switch (e->tipo) {
     case E_TERM:
@@ -279,6 +282,80 @@ static void gen_expr(Emissor *em, const Gramatica *g, const Expr *e)
         break;
     case E_NAOTERM:
         emit(em, "parse_%s();", g->nts[e->simbolo].nome);
+        break;
+
+    /* parte do TODO (Aparentemente feito) */
+    case E_SEQ:
+        i = 0;
+        while (i<e->nfilhos){
+            gen_expr(em, g, e->filhos[i]);
+            i++;
+        }
+        break;
+    case E_ALT:
+        i = 0;
+        while (i < e->nfilhos) {
+            if (e->filhos[i]->anulavel) {
+                indice_anulavel = i;
+                break;
+            }
+            i++;
+        }
+
+        primeira_opcao = 1;
+        i = 0;
+        while (i < e->nfilhos) {
+            if (i == indice_anulavel) {
+                i++;
+                continue;
+            }
+
+            if (primeira_opcao) {
+                emit_teste(em, "if (", g, &e->filhos[i]->first, ") {");
+                primeira_opcao = 0;
+            } else {
+                emit_teste(em, "} else if (", g, &e->filhos[i]->first, ") {");
+            }
+
+            em->nivel++;
+            gen_expr(em, g, e->filhos[i]);
+            em->nivel--;
+            i++;
+        }
+
+        if (indice_anulavel != -1) {
+            if (primeira_opcao) {
+                gen_expr(em, g, e->filhos[indice_anulavel]);
+            } else {
+                emit(em, "} else {");
+                em->nivel++;
+                gen_expr(em, g, e->filhos[indice_anulavel]);
+                em->nivel--;
+                emit(em, "}");
+            }
+        } else {
+            emit(em, "} else {");
+            em->nivel++;
+            emit_erro(em, &e->first);
+            em->nivel--;
+            emit(em, "}");
+        }
+        break;
+    case E_OPC:
+        emit_teste(em, "if (", g, &e->filhos[0]->first, ") {");
+        em->nivel++;
+        gen_expr(em, g, e->filhos[0]);
+        em->nivel--;
+        emit(em, "}");
+        break;
+    case E_REP:
+        emit_teste(em, "while (", g, &e->filhos[0]->first, ") {");
+        em->nivel++;
+        gen_expr(em, g, e->filhos[0]);
+        em->nivel--;
+        emit(em, "}");
+        break;
+    case E_VAZIO:
         break;
     /*
      * TODO(aluno): traduzir as demais construcoes (secao 4):
@@ -299,9 +376,6 @@ static void gen_expr(Emissor *em, const Gramatica *g, const Expr *e)
      * no lugar do erro.
      */
     default:
-        emit(em, "/* TODO(aluno): construcao ainda nao traduzida */");
-        (void) emit_teste;
-        (void) emit_erro;
         break;
     }
 }
@@ -310,28 +384,430 @@ static void gen_expr(Emissor *em, const Gramatica *g, const Expr *e)
 /* Expressoes regulares de TOKENS (modo proprio)                      */
 /* ------------------------------------------------------------------ */
 
+/* Regex -> AFN (Thompson) -> AFD (subconjuntos) -> codigo C.
+ * Alfabeto: bytes 1..255 (o '\0' nunca casa). '.' nao casa '\n';
+ * [^...] casa '\n'. Usa apenas ctype/stdio/stdlib/string e diag_erro. */
+
+#define RE_MAX_NFA 4096
+#define RE_MAX_DFA 8192
+
+typedef struct {
+    unsigned char set[32];  /* conjunto de caracteres (se is_set) */
+    int is_set;             /* 1: transicao por caractere; 0: epsilon */
+    int a, b;               /* destinos (is_set usa so 'a') */
+} ReEstado;
+
+typedef struct {
+    int ini, fim;
+} ReFrag;
+
+typedef struct {
+    const char *p;
+    ReEstado *n;
+    int nn;
+    const char *erro;
+} ReParser;
+
+static void re_bit_set(unsigned char *s, int c) { s[c >> 3] |= (unsigned char) (1u << (c & 7)); }
+static int  re_bit_get(const unsigned char *s, int c) { return (s[c >> 3] >> (c & 7)) & 1; }
+
+static void re_erro(ReParser *P, const char *msg){
+    if (!P->erro)
+        P->erro = msg;
+}
+
+static int re_novo(ReParser *P, int is_set){
+    ReEstado *e;
+    if (P->nn >= RE_MAX_NFA) {
+        re_erro(P, "expressao grande demais");
+        return 0;
+    }
+    e = &P->n[P->nn];
+    memset(e, 0, sizeof *e);
+    e->a = e->b = -1;
+    e->is_set = is_set;
+    return P->nn++;
+}
+
+static void re_ligar(ReParser *P, int de, int para){
+    if (P->n[de].a < 0)
+        P->n[de].a = para;
+    else
+        P->n[de].b = para;
+}
+
+static ReFrag re_frag_eps(ReParser *P){
+    ReFrag f;
+    f.ini = re_novo(P, 0);
+    f.fim = re_novo(P, 0);
+    re_ligar(P, f.ini, f.fim);
+    return f;
+}
+
+static ReFrag re_frag_set(ReParser *P, const unsigned char set[32]){
+    ReFrag f;
+    f.ini = re_novo(P, 1);
+    f.fim = re_novo(P, 0);
+    memcpy(P->n[f.ini].set, set, 32);
+    P->n[f.ini].a = f.fim;
+    return f;
+}
+
+/* le o caractere depois de '\' */
+static unsigned char re_escape(ReParser *P){
+    unsigned char c;
+    if (!*P->p) {
+        re_erro(P, "'\\' no fim da expressao");
+        return '\\';
+    }
+    c = (unsigned char) *P->p++;
+    switch (c) {
+    case 'n': return '\n';
+    case 't': return '\t';
+    case 'r': return '\r';
+    default:  return c;      /* \\ \/ \. \( \* ... = o proprio caractere */
+    }
+}
+
+static int re_char_classe(ReParser *P){
+    if (*P->p == '\\') {
+        P->p++;
+        return re_escape(P);
+    }
+    return (unsigned char) *P->p++;
+}
+
+static void re_classe(ReParser *P, unsigned char set[32]){
+    int neg = 0, i;
+    memset(set, 0, 32);
+    P->p++;                                  /* '[' */
+    if (*P->p == '^') {
+        neg = 1;
+        P->p++;
+    }
+    while (*P->p && *P->p != ']') {
+        int lo = re_char_classe(P), hi = lo;
+        if (*P->p == '-' && P->p[1] && P->p[1] != ']') {
+            P->p++;
+            hi = re_char_classe(P);
+            if (hi < lo) {
+                re_erro(P, "faixa invalida em classe");
+                hi = lo;
+            }
+        }
+        for (i = lo; i <= hi; i++)
+            re_bit_set(set, i);
+    }
+    if (*P->p != ']')
+        re_erro(P, "classe [...] sem ']'");
+    else
+        P->p++;
+    if (neg)
+        for (i = 0; i < 32; i++)
+            set[i] = (unsigned char) ~set[i];
+    set[0] &= (unsigned char) ~1u;           /* '\0' nunca casa */
+}
+
+static ReFrag re_alt(ReParser *P);
+
+static ReFrag re_atomo(ReParser *P){
+    unsigned char set[32];
+    char c = *P->p;
+
+    if (c == '(') {
+        ReFrag f;
+        P->p++;
+        f = re_alt(P);
+        if (*P->p != ')')
+            re_erro(P, "falta ')'");
+        else
+            P->p++;
+        return f;
+    }
+    if (c == '[') {
+        re_classe(P, set);
+        return re_frag_set(P, set);
+    }
+    if (c == '.') {
+        int i;
+        P->p++;
+        memset(set, 0xFF, 32);
+        set[0] &= (unsigned char) ~1u;
+        i = '\n';
+        set[i >> 3] &= (unsigned char) ~(1u << (i & 7));
+        return re_frag_set(P, set);
+    }
+    if (c == '*' || c == '+' || c == '?') {
+        re_erro(P, "operador sem operando");
+        P->p++;
+        return re_frag_eps(P);
+    }
+    memset(set, 0, 32);
+    if (c == '\\') {
+        P->p++;
+        re_bit_set(set, re_escape(P));
+    } else {
+        re_bit_set(set, (unsigned char) c);
+        P->p++;
+    }
+    return re_frag_set(P, set);
+}
+
+static ReFrag re_rep(ReParser *P){
+    ReFrag a = re_atomo(P);
+
+    while (*P->p == '*' || *P->p == '+' || *P->p == '?') {
+        char op = *P->p++;
+        int s = re_novo(P, 0), e = re_novo(P, 0);
+
+        if (op == '*') {
+            P->n[s].a = a.ini; P->n[s].b = e;
+            re_ligar(P, a.fim, a.ini);
+            re_ligar(P, a.fim, e);
+            a.ini = s;
+        } else if (op == '+') {
+            re_ligar(P, a.fim, a.ini);
+            re_ligar(P, a.fim, e);
+        } else {                              /* '?' */
+            P->n[s].a = a.ini; P->n[s].b = e;
+            re_ligar(P, a.fim, e);
+            a.ini = s;
+        }
+        a.fim = e;
+    }
+    return a;
+}
+
+static ReFrag re_cat(ReParser *P){
+    ReFrag f = re_frag_eps(P);
+    while (*P->p && *P->p != '|' && *P->p != ')') {
+        ReFrag g = re_rep(P);
+        re_ligar(P, f.fim, g.ini);
+        f.fim = g.fim;
+    }
+    return f;
+}
+
+static ReFrag re_alt(ReParser *P){
+    ReFrag f = re_cat(P);
+    while (*P->p == '|') {
+        ReFrag g;
+        int s, e;
+        P->p++;
+        g = re_cat(P);
+        s = re_novo(P, 0);
+        e = re_novo(P, 0);
+        P->n[s].a = f.ini; P->n[s].b = g.ini;
+        re_ligar(P, f.fim, e);
+        re_ligar(P, g.fim, e);
+        f.ini = s;
+        f.fim = e;
+    }
+    return f;
+}
+
+/* ---------- construcao de subconjuntos ---------- */
+
+typedef struct {
+    int nb;                  /* bytes por conjunto de estados do AFN */
+    int ne, cap;             /* numero de estados do AFD / capacidade */
+    unsigned char *conj;     /* ne * nb */
+    int *trans;              /* ne * 256, -1 = sem transicao */
+    char *final;             /* ne */
+} ReDfa;
+
+static void re_fecho(const ReParser *P, unsigned char *set, int *pilha){
+    int i, topo = 0;
+    for (i = 0; i < P->nn; i++)
+        if (re_bit_get(set, i))
+            pilha[topo++] = i;
+    while (topo > 0) {
+        const ReEstado *e = &P->n[pilha[--topo]];
+        int k, alvo[2];
+        if (e->is_set)
+            continue;
+        alvo[0] = e->a;
+        alvo[1] = e->b;
+        for (k = 0; k < 2; k++)
+            if (alvo[k] >= 0 && !re_bit_get(set, alvo[k])) {
+                re_bit_set(set, alvo[k]);
+                pilha[topo++] = alvo[k];
+            }
+    }
+}
+
+/* devolve indice do estado do AFD com esse conjunto (criando se preciso);
+ * -2 em falta de memoria / limite */
+static int re_dfa_estado(ReDfa *D, const unsigned char *set, int final){
+    int i;
+    for (i = 0; i < D->ne; i++)
+        if (memcmp(D->conj + (size_t) i * D->nb, set, (size_t) D->nb) == 0)
+            return i;
+    if (D->ne >= RE_MAX_DFA)
+        return -2;
+    if (D->ne >= D->cap) {
+        int ncap = D->cap ? D->cap * 2 : 16;
+        unsigned char *c = realloc(D->conj, (size_t) ncap * D->nb);
+        int *t;
+        char *fi;
+        if (!c) return -2;
+        D->conj = c;
+        t = realloc(D->trans, (size_t) ncap * 256 * sizeof *t);
+        if (!t) return -2;
+        D->trans = t;
+        fi = realloc(D->final, (size_t) ncap);
+        if (!fi) return -2;
+        D->final = fi;
+        D->cap = ncap;
+    }
+    memcpy(D->conj + (size_t) D->ne * D->nb, set, (size_t) D->nb);
+    memset(D->trans + (size_t) D->ne * 256, 0xFF, 256 * sizeof(int)); /* -1 */
+    D->final[D->ne] = (char) final;
+    return D->ne++;
+}
+
+static void re_emite_chr(FILE *f, int c){
+    if (c == '\\')
+        fputs("'\\\\'", f);
+    else if (c == '\'')
+        fputs("'\\''", f);
+    else if (isprint(c))
+        fprintf(f, "'%c'", c);
+    else
+        fprintf(f, "%d", c);
+}
+
 /* Emite a funcao
  *     static size_t <nome>(const char *s)
  * que devolve o comprimento do MAIOR prefixo de s reconhecido pela
  * expressao regular, ou 0 se nenhum prefixo for reconhecido.
  * Retorna 0 se a expressao for valida (senao reporte com diag_erro). */
-static int gen_casamento_regex(FILE *f, const char *nome, const char *regex)
-{
-    /* TODO(aluno): converter a expressao regular em automato finito
-     * deterministico (por exemplo: analisar a expressao, construir o AFN
-     * de Thompson e determiniza-lo pela construcao de subconjuntos) e
-     * emitir o automato como codigo C: um switch sobre o estado, com as
-     * transicoes por faixas de caracteres, guardando a ultima posicao em
-     * que o automato passou por um estado final. Subconjunto minimo:
-     * concatenacao, |, *, +, ?, parenteses, classes [a-z] e [^...], o
-     * ponto e escapes como \n, \t, \\ e \/.
-     *
-     * O stub abaixo nao reconhece nada. */
+static int gen_casamento_regex(FILE *f, const char *nome, const char *regex){
+    ReParser P;
+    ReFrag nfa;
+    ReDfa D;
+    unsigned char *cur = NULL, *tmp = NULL;
+    int *pilha = NULL;
+    int d, c, ret = -1, algum_final = 0;
+
+    memset(&D, 0, sizeof D);
+    P.p = regex;
+    P.nn = 0;
+    P.erro = NULL;
+    P.n = malloc(RE_MAX_NFA * sizeof *P.n);
+    if (!P.n)
+        return -1;
+
+    nfa = re_alt(&P);
+    if (!P.erro && *P.p)
+        re_erro(&P, "')' sem '(' correspondente");
+    if (P.erro) {
+        diag_erro(0, 0, "expressao regular '%s': %s", regex, P.erro);
+        goto fim;
+    }
+
+    D.nb = (P.nn + 7) / 8;
+    cur = malloc((size_t) D.nb);
+    tmp = malloc((size_t) D.nb);
+    pilha = malloc((size_t) P.nn * sizeof *pilha);
+    if (!cur || !tmp || !pilha)
+        goto fim;
+
+    memset(cur, 0, (size_t) D.nb);
+    re_bit_set(cur, nfa.ini);
+    re_fecho(&P, cur, pilha);
+    if (re_dfa_estado(&D, cur, re_bit_get(cur, nfa.fim)) < 0)
+        goto fim;
+
+    for (d = 0; d < D.ne; d++) {
+        memcpy(cur, D.conj + (size_t) d * D.nb, (size_t) D.nb); /* conj pode realocar */
+        for (c = 1; c < 256; c++) {
+            int i, alvo, vazio = 1;
+            memset(tmp, 0, (size_t) D.nb);
+            for (i = 0; i < P.nn; i++)
+                if (re_bit_get(cur, i) && P.n[i].is_set &&
+                    re_bit_get(P.n[i].set, c))
+                    re_bit_set(tmp, P.n[i].a);
+            for (i = 0; i < D.nb; i++)
+                if (tmp[i]) { vazio = 0; break; }
+            if (vazio)
+                continue;
+            re_fecho(&P, tmp, pilha);
+            alvo = re_dfa_estado(&D, tmp, re_bit_get(tmp, nfa.fim));
+            if (alvo < 0) {
+                diag_erro(0, 0, "automato grande demais para a expressao regular '%s'", regex);
+                goto fim;
+            }
+            D.trans[(size_t) d * 256 + c] = alvo;
+        }
+    }
+
+    /* ---------- emissao do codigo C ---------- */
     fprintf(f, "static size_t %s(const char *s)\n{\n", nome);
-    fputs("    /* TODO(aluno): automato para ", f);
+    fputs("    /* automato para ", f);
     emitir_comentario(f, regex);
-    fputs(" */\n    (void) s;\n    return 0;\n}\n\n", f);
-    return 0;
+    fputs(" */\n", f);
+    fputs("    size_t i = 0, ultimo = 0;   /* ultimo = fim do maior casamento */\n"
+          "    int estado = 0;\n\n"
+          "    for (;;) {\n"
+          "        unsigned char c = (unsigned char) s[i];\n"
+          "        int prox;\n\n"
+          "        switch (estado) {\n", f);
+
+    for (d = 0; d < D.ne; d++) {
+        int primeiro = 1;
+        fprintf(f, "        case %d:\n", d);
+        c = 1;
+        while (c < 256) {
+            int t = D.trans[(size_t) d * 256 + c], lo = c, hi;
+            if (t < 0) { c++; continue; }
+            while (c + 1 < 256 && D.trans[(size_t) d * 256 + c + 1] == t)
+                c++;
+            hi = c++;
+            fputs(primeiro ? "            if (" : "            else if (", f);
+            primeiro = 0;
+            if (lo == hi) {
+                fputs("c == ", f);
+                re_emite_chr(f, lo);
+            } else {
+                fputs("c >= ", f);
+                re_emite_chr(f, lo);
+                if (hi < 255) {
+                    fputs(" && c <= ", f);
+                    re_emite_chr(f, hi);
+                }
+            }
+            fprintf(f, ") prox = %d;\n", t);
+        }
+        fputs(primeiro ? "            prox = -1;\n" : "            else prox = -1;\n", f);
+        fputs("            break;\n", f);
+        if (D.final[d])
+            algum_final = 1;
+    }
+    fputs("        default:\n            prox = -1;\n            break;\n        }\n\n"
+          "        if (prox < 0)\n            return ultimo;\n"
+          "        estado = prox;\n        i++;\n", f);
+
+    if (algum_final) {
+        fputs("\n        switch (estado) {\n", f);
+        for (d = 0; d < D.ne; d++)
+            if (D.final[d])
+                fprintf(f, "        case %d:\n", d);
+        fputs("            ultimo = i;\n            break;\n"
+              "        default:\n            break;\n        }\n", f);
+    }
+    fputs("    }\n}\n\n", f);
+    ret = 0;
+
+fim:
+    free(P.n);
+    free(cur);
+    free(tmp);
+    free(pilha);
+    free(D.conj);
+    free(D.trans);
+    free(D.final);
+    return ret;
 }
 
 /* ------------------------------------------------------------------ */
@@ -345,25 +821,66 @@ static int gen_casamento_regex(FILE *f, const char *nome, const char *regex)
  *   Token: tipo = <numero>, lexema = '<texto>', linha = <numero>
  *
  * Ao chegar ao fim do arquivo devolve um token TOKEN_FIM. */
-static void gen_token_de_arquivo(FILE *f, int microc)
-{
-    /* TODO(aluno): emitir a leitura real com fgets + sscanf (formato
-     * acima). Linhas em branco sao ignoradas; uma linha malformada deve
-     * ser reportada com o numero da linha do arquivo de tokens. */
-    static const char *const linhas[] = {
+static void gen_token_de_arquivo(FILE *f, int microc){
+    /* Cada linha do arquivo tem o formato
+     *     Token: tipo = <numero>, lexema = '<texto>', linha = <numero>
+     * O lexema pode conter espacos, virgulas e ate aspas, entao o texto
+     * e' o que fica entre "lexema = '" e a ULTIMA ocorrencia de
+     * "', linha = "; os numeros sao lidos com sscanf. */
+    static const char *const ini[] = {
         "static Token token_de_arquivo(void)",
         "{",
+        "    static const char marca[] = \"', linha = \";",
+        "    static int numero_linha = 0, ultima_linha = 0;",
+        "    char buf[1024];",
         "    Token t;",
+        "",
         "    memset(&t, 0, sizeof t);",
-        "    fprintf(stderr, \"opcao --tokens ainda nao implementada\\n\");",
-        "    exit(EXIT_FAILURE);",
+        "    while (fgets(buf, sizeof buf, arquivo_tokens) != NULL) {",
+        "        int tipo = 0, pos = 0, linha_tok = 0;",
+        "        size_t len, n;",
+        "        char *ini, *fim = NULL, *p;",
+        "",
+        "        numero_linha++;",
+        "        for (p = buf; *p == ' ' || *p == '\\t' || *p == '\\r' || *p == '\\n'; p++)",
+        "            ;",
+        "        if (*p == '\\0')",
+        "            continue;                   /* linha em branco */",
+        "        ini = buf;",
+        "        if (sscanf(buf, \" Token: tipo = %d, lexema = '%n\", &tipo, &pos) == 1",
+        "            && pos > 0) {",
+        "            ini = buf + pos;",
+        "            for (p = strstr(ini, marca); p != NULL; p = strstr(p + 1, marca))",
+        "                fim = p;                /* ultima ocorrencia */",
+        "        }",
+        "        if (fim == NULL || sscanf(fim + strlen(marca), \"%d\", &linha_tok) != 1) {",
+        "            fprintf(stderr, \"arquivo de tokens, linha %d: linha malformada\\n\",",
+        "                    numero_linha);",
+        "            exit(EXIT_FAILURE);",
+        "        }",
+        "        len = (size_t) (fim - ini);",
+        "        n = len < sizeof t.lexema ? len : sizeof t.lexema - 1;",
+        "        memcpy(t.lexema, ini, n);",
+        "        t.lexema[n] = '\\0';",
+        NULL
+    };
+    static const char *const fim[] = {
+        "        t.linha = linha_tok;",
+        "        ultima_linha = linha_tok;",
+        "        return t;",
+        "    }",
+        "    t.tipo = TOKEN_FIM;",
+        "    t.linha = ultima_linha;",
         "    return t;",
         "}",
         "",
         NULL
     };
-    (void) microc;
-    emit_linhas(f, linhas);
+    emit_linhas(f, ini);
+    /* no Micro C o campo tipo e' o enum TokenType do scanner do TP1 */
+    fputs(microc ? "        t.tipo = (TokenType) tipo;\n"
+                 : "        t.tipo = tipo;\n", f);
+    emit_linhas(f, fim);
 }
 
 /* ------------------------------------------------------------------ */
