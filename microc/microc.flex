@@ -271,13 +271,13 @@ MINUS       -
                     } 
  
 
-'[^'\n]' { 
+'([^'\n\\]|\\.)' { 
     guarda_lexema(); 
     ultimo_token = CHARCONST; 
     return CHARCONST; 
 } 
  
-'[^'\n]* { 
+'([^'\n\\]|\\.)* { 
     microc_yylval.error_msg = "Char constante nao terminada";
     return UNDEF; 
 } 
