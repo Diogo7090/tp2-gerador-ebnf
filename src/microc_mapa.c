@@ -10,7 +10,7 @@
  *
  * Se o seu tokens.h do TP1 usar outros nomes, ajuste a tabela.
  *
- * TODO(aluno): implementar microc_carregar_tokens_h.
+ * DONE(aluno): implementar microc_carregar_tokens_h.
  */
 #include <ctype.h>
 #include <stdio.h>
@@ -54,7 +54,7 @@ static void adicionar_nome(const char *s, size_t n)
     nomes[nnomes++] = xstrndup(s, n);
 }
 
-/* TODO(aluno): abrir o arquivo (ler_arquivo ajuda), localizar a
+/* DONE(aluno): abrir o arquivo (ler_arquivo ajuda), localizar a
  * enumeracao "typedef enum { ... } TokenType;" e chamar adicionar_nome
  * para cada identificador da lista, ignorando comentarios e valores
  * explicitos ("X = 3"). Retorne 0 em caso de sucesso.

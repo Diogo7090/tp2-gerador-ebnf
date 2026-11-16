@@ -15,7 +15,7 @@
  * as primitivas, o lexico (exceto o reconhecimento das expressoes
  * regulares) e a traducao de terminais e nao terminais.
  *
- * TODO(aluno):
+ * DONE(aluno):
  *   - gen_expr: traducao de sequencia, alternativa, [ ] e { }
  *     (esquema da secao 4 do enunciado);
  *   - gen_casamento_regex: converter uma expressao regular de TOKENS em
@@ -358,7 +358,7 @@ static void gen_expr(Emissor *em, const Gramatica *g, const Expr *e)
     case E_VAZIO:
         break;
     /*
-     * TODO(aluno): traduzir as demais construcoes (secao 4):
+     * DONE(aluno): traduzir as demais construcoes (secao 4):
      *
      *   E_SEQ   a1 a2 ... an   ->  gen_expr de cada filho, em ordem
      *   E_ALT   a1 | ... | an  ->  if (FIRST(a1)) {...} else if ... else erro

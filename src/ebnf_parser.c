@@ -17,7 +17,7 @@
  * As secoes TOKENS e RULES e a regra completa (regra) ja estao prontas,
  * incluindo a recuperacao de erros por sincronizacao no ';'.
  *
- * TODO(aluno): implementar parse_expr, parse_seq e parse_fator, que
+ * DONE(aluno): implementar parse_expr, parse_seq e parse_fator, que
  * constroem a arvore Expr do lado direito das regras (ver gramatica.h).
  */
 #include <stdlib.h>
@@ -91,7 +91,7 @@ static Expr *parse_fator(Parser *p);
 
 /*
  * Feito --------- checar se está correto -----------
- * TODO(aluno): implementar as funcoes abaixo seguindo a gramatica da
+ * DONE(aluno): implementar as funcoes abaixo seguindo a gramatica da
  * notacao (cabecalho deste arquivo), uma funcao por nao terminal:
  *
  *   static Expr *parse_expr(Parser *p);   expr  = seq { "|" seq } ;

@@ -6,7 +6,7 @@
  * 
  * Este arquivo NAO esta completo. Partes do reconhecimento de tokens 
  * foram implementadas apenas como EXEMPLO, para orienta-lo(a) sobre o 
- * padrao a seguir. As demais estao marcadas com "TODO(aluno)" e devem 
+ * padrao a seguir. As demais estao marcadas com "T0D0(aluno)" e devem 
  * ser completadas por voce. 
  * 
  * Compilacao: 

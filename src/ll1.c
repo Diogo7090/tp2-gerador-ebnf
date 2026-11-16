@@ -17,7 +17,7 @@
  * em que o else fica com o if mais proximo, como em C.
  *
  * Fornecido: reportar (formata as mensagens).
- * TODO(aluno): verificar_expr e ll1_verificar.
+ * DONE(aluno): verificar_expr e ll1_verificar.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -58,7 +58,7 @@ static void reportar(const Gramatica *g, int nt, const Expr *e, int eh_aviso,
     fputc('\n', stderr);
 }
 
-/* TODO(aluno): percorrer as regras e, para cada no E_ALT, E_OPC e E_REP,
+/* DONE(aluno): percorrer as regras e, para cada no E_ALT, E_OPC e E_REP,
  * verificar as condicoes do cabecalho. Use bitset_intersecao/bitset_vazio
  * e reporte com reportar(...), por exemplo:
  *

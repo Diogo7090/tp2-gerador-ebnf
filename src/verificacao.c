@@ -5,7 +5,7 @@
  *   - verif_indefinidos: nao terminais usados mas nao definidos;
  *   - verif_terminais:   terminais nomeados sem declaracao.
  *
- * TODO(aluno):
+ * DONE(aluno):
  *   - verif_inalcancaveis      (aviso)
  *   - verif_improdutivos       (erro)
  *   - verif_recursao_esquerda  (erro; direta e indireta)
@@ -85,23 +85,12 @@ static int verif_terminais(Gramatica *g, int modo_microc)
 /* A implementar                                                      */
 /* ------------------------------------------------------------------ */
 
-/* TODO(aluno): emitir um AVISO para cada nao terminal que nao pode ser
+/* DONE(aluno): emitir um AVISO para cada nao terminal que nao pode ser
  * alcancado a partir do simbolo inicial (g->inicial). Sugestao: marque
  * o inicial e, ate um ponto fixo, marque todo nao terminal que aparece
  * na regra de um nao terminal ja marcado (expr_percorrer ajuda). */
 static int verif_inalcancaveis(Gramatica *g)
 {   
-    /*  
-    lembrete pra mim, depois tento deixar mais bonito
-    retornar quantidade nao alcaçaveis
-    iniciar pelo inicial
-    busca em profundidade, expandindo cada nao terminal de acordo com sua regra
-    se aplicado todas sua produções, nao expandir mais
-    ao percorrer todos opções de n-term o que nao nao foram atingindo a partir do inicial nao é alcançavel
-    usar vetor regras de nao nterm de gramatica,
-    acho que nao precisa criar arvore extra apenas usar indice da lista de n-term e recursividade
-    lista de nao A 
-    */
     int erros, quantNTerm, *visitados, i;
 
     visitados = calloc(g->nnts, sizeof(int));
@@ -123,31 +112,13 @@ static int verif_inalcancaveis(Gramatica *g)
     return erros;
 }
 
-/* TODO(aluno): emitir um ERRO para cada nao terminal definido que nao
+/* DONE(aluno): emitir um ERRO para cada nao terminal definido que nao
  * deriva nenhuma cadeia de terminais. Ponto fixo: um nao terminal e
  * produtivo se sua regra for produtiva, onde terminais, E_VAZIO, [..] e
  * {..} sao produtivos, uma sequencia exige todos os filhos produtivos
  * e uma alternativa exige ao menos um. Retorne o numero de erros. */
 static int verif_improdutivos(Gramatica *g)
 {
-    /*
-        visita cada nterm e sua regra e percorrer a arvore se pelo menos uma subarvore for prod o nterm e prod
-        de alt gerar um um cadeia é produtivo
-        opc é produtivo - gera cadeia vaiza
-        rep é prod - idem
-        e_vazio - prod
-        term e prod
-        seq inteira precisa ser prod
-        alt pelo menos 1
-
-        1- listaDeProd, cada indice representa u nterm se é prod ou nao todos prod inicialmente
-        2- lista dupla, lista indice do n-term cada posicao indica se depende de outra na prod
-            se depender o resultado vai o mesmo do listaDeProd se nao tiver sido marcado como prod
-            se nenhum que depender gerar prod é improd
-        
-
-
-    */
     int *listaDeProd, i, mudou, erros;
 
     erros = 0;
@@ -187,7 +158,7 @@ static int verif_improdutivos(Gramatica *g)
     return erros;
 }
 
-/* TODO(aluno): detectar recursao a esquerda direta (a = a ...) e
+/* DONE(aluno): detectar recursao a esquerda direta (a = a ...) e
  * indireta (a = b ... ; b = a ...), inclusive atraves de prefixos
  * anulaveis (a = [ x ] a ...). Use o campo anulavel de Expr, ja
  * calculado quando esta funcao e chamada. Reporte um erro por nao

@@ -3,7 +3,7 @@
  *
  * Fornecido: conj_iniciar e conj_imprimir.
  *
- * TODO(aluno): conj_anulavel, conj_first e conj_follow. Os tres sao
+ * DONE(aluno): conj_anulavel, conj_first e conj_follow. Os tres sao
  * calculados por iteracao ate ponto fixo: repita uma passada sobre todas
  * as regras enquanto algum conjunto (ou flag) mudar. bitset_unir devolve
  * 1 quando o conjunto de destino muda, o que ajuda a detectar o ponto fixo.
@@ -64,7 +64,7 @@ void conj_imprimir(FILE *f, const Gramatica *g)
 
 
 /* aparentemente, feito */
-/* TODO(aluno): calcular e->anulavel para cada no Expr e g->nts[i].anulavel.
+/* DONE(aluno): calcular e->anulavel para cada no Expr e g->nts[i].anulavel.
  *   E_TERM: 0        E_VAZIO: 1        E_NAOTERM: anulavel do nao terminal
  *   E_SEQ: 1 se todos os filhos forem anulaveis
  *   E_ALT: 1 se algum filho for anulavel
@@ -153,7 +153,7 @@ void conj_anulavel(Gramatica *g)
 
 
 /* aparentemente, feito */
-/* TODO(aluno): calcular e->first para cada no Expr e g->nts[i].first.
+/* DONE(aluno): calcular e->first para cada no Expr e g->nts[i].first.
  *   E_TERM t: {t}     E_NAOTERM B: FIRST(B)     E_VAZIO: {}
  *   E_SEQ a1..an: FIRST(a1) U FIRST(a2) ... ate o primeiro ai nao anulavel
  *   E_ALT, E_OPC, E_REP: uniao dos FIRST dos filhos
@@ -248,7 +248,7 @@ void conj_first(Gramatica *g)
 }
 
 /* aparentemente, feito */
-/* TODO(aluno): calcular e->follow (o que pode vir logo apos cada
+/* DONE(aluno): calcular e->follow (o que pode vir logo apos cada
  * construcao) e g->nts[i].follow. FOLLOW(inicial) contem $ (TERM_FIM).
  * Para cada regra A = alfa, faca follow(alfa) U= FOLLOW(A) e propague:
  *   E_SEQ a1..an:  follow(ai) U= FIRST(ai+1 ... an), mais follow(seq)
