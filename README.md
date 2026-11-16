@@ -1,5 +1,5 @@
 aluno: <202419050670>
-aluno: <20241905>
+aluno: <202419050409>
 uso_ia: <sim>
 
 # Compiladores I — Trabalho Prático 2: Gerador de Analisadores Sintáticos Descendentes Recursivos
