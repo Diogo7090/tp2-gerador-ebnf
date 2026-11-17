@@ -2,6 +2,8 @@ aluno: <202419050670>
 aluno: <202419050409>
 uso_ia: <sim>
 
+Link repositorio: https://github.com/Diogo7090/tp2-gerador-ebnf
+
 # Compiladores I — Trabalho Prático 2: Gerador de Analisadores Sintáticos Descendentes Recursivos
 
 Código-base do gerador. Ele lê uma gramática em EBNF e gera, em ANSI C, um analisador sintático descendente recursivo para a linguagem descrita. Veja o enunciado para os requisitos completos.
