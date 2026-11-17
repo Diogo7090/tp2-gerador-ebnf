@@ -16,6 +16,7 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "scanner.h"
 
 /* ---- simbolos do scanner gerado pelo flex (ajuste ao seu TP1) ---- */
@@ -115,6 +116,8 @@ Token proximo_token(void)
         strncpy(t.lexema, texto, sizeof t.lexema - 1);
         t.lexema[sizeof t.lexema - 1] = '\0';
     }
+    free(microc_yylval.symbol);
+    microc_yylval.symbol = NULL;
     return t;
 }
 

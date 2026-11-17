@@ -21,25 +21,13 @@
  */
 #include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdnoreturn.h>
 #include <string.h>
 #include "ll1.h"
 #include "bitset.h"
 #include "gramatica.h"
-#include "util.h"
 
-typedef struct noRegra noRegra;
-void addRegraNaTabela(noRegra ***tabelaPreditiva, Expr* regra, int posicaoNTerm, int posicaoTerm);
-void liberarCelulas(noRegra *celula);
-void liberarRecursos(const Gramatica *g, noRegra*** tabelaPreditiva);
-int preencherTabelaPreditiva2B(const Gramatica *g, Expr* regra, noRegra*** tabelaPreditiva, int numNTerm);
-int verificar_expr(const Gramatica *g, int numNTerm, Expr *regra );
+int verificar_expr(const Gramatica *g, int numNTerm, Expr *regra, const Bitset *seg);
 
-struct noRegra{
-    struct noRegra *proximo;
-    Expr *regra;
-};
 /* Reporta um conflito na regra do nao terminal nt, na posicao de e.
  * comum (pode ser NULL) e o conjunto de tokens em conflito. */
 static void reportar(const Gramatica *g, int nt, const Expr *e, int eh_aviso,
@@ -70,174 +58,14 @@ static void reportar(const Gramatica *g, int nt, const Expr *e, int eh_aviso,
  * Retorne o numero de ERROS (avisos nao contam). */
 int ll1_verificar(const Gramatica *g)
 {
-
-    /*
-        chamar para cada terminar A->a
-        1 -  Para cada a em primeiro A, colocar referencia producao M[A, a]
-        2 -verificar se first naoTerm A nao possui vazio
-        2 -se vazio existir adicionar a referencia a prod posicao M[A, b] e  cada b follow de A
-        2 - se vazio exisit em first de a e seguinte em A colococar regra em M[A, $]
-        3 - posições vazia marcar como erro
-    */
-    int erros = 0;
-    int i, j, p;
-    NaoTerminal nTermAtual;
-    noRegra *celulaAtual;
-
-
-    noRegra ***tabelaPreditiva = (noRegra***) calloc(g->nnts, sizeof(noRegra**));
-    if(tabelaPreditiva == NULL) {
-        fprintf(stderr, "Erro ao alocar tabela preditiva");
-        exit(EXIT_FAILURE);
-    }
-
+    int i, erros = 0;
     for(i = 0; i < g->nnts; i++) {
-        tabelaPreditiva[i] = (noRegra**) calloc(g->nterms, sizeof(noRegra*));
-        if(tabelaPreditiva[i] == NULL) {
-            fprintf(stderr,"Erro alocarc coluna\n");
-            exit(EXIT_FAILURE);
-        }
+        erros += verificar_expr(g, i, g->nts[i].regra, &g->nts[i].follow);
     }
-
-    for(i = 0; i < g->nnts; i++) {
-        nTermAtual = g->nts[i];
-        if(!bitset_vazio(&(nTermAtual.first))) {
-
-            for(j = bitset_proximo(&nTermAtual.first, 0); j >= 0; j = bitset_proximo(&nTermAtual.first, j+1)) {
-                if(bitset_tem(&g->nts[i].first, j)) {
-                    addRegraNaTabela(tabelaPreditiva, g->nts[i].regra, i, j);
-                }
-            }
-        }
-
-        if(nTermAtual.anulavel) {
-            for(p = bitset_proximo(&nTermAtual.follow, 0); p >= 0; p = bitset_proximo(&nTermAtual.follow, p+1)) {
-                if(bitset_tem(&nTermAtual.follow, p)) {
-                    addRegraNaTabela(tabelaPreditiva, nTermAtual.regra, i, p);
-                }
-            }
-
-            /*
-                verificar parte b da regra 2
-            */
-            (void)preencherTabelaPreditiva2B(g, nTermAtual.regra, tabelaPreditiva, i);
-        }
-    }
-
-    for(i = 0; i < g->nnts; i++) {
-        for(j = 0; j < g->nterms; j++) {
-            celulaAtual = tabelaPreditiva[i][j];
-            if(celulaAtual != NULL && celulaAtual->proximo != NULL) {
-                reportar(g, i, celulaAtual->regra, 0, NULL, "conflito de multiplas regras para o terminal %d", j);
-                erros++;
-            }
-        }
-    }
-
-    for(i = 0; i < g->nnts; i++) {
-        erros += verificar_expr(g, i, g->nts[i].regra);
-    }
-    liberarRecursos(g, tabelaPreditiva);
-    tabelaPreditiva = NULL;
-    (void) reportar;
-    (void) g;
     return erros;
 }
 
-int preencherTabelaPreditiva2B(const Gramatica *g, Expr* regra, noRegra*** tabelaPreditiva, int numNTerm) {
-    int i, quantAnul;
-    if(regra == NULL) {
-        return 0;
-    }
-
-    switch(regra->tipo) {
-        case E_TERM: {
-            break;
-        } 
-        case E_NAOTERM: {
-            if(regra->anulavel) {
-                return 1;
-            }
-
-            break;
-        } 
-        case E_ALT: {
-            for(i = 0; i < regra->nfilhos; i++) {
-                if(regra->filhos[i] != NULL && regra->filhos[i]->anulavel) {
-
-                    if(preencherTabelaPreditiva2B(g, regra->filhos[i], tabelaPreditiva, numNTerm)) {
-                        addRegraNaTabela(tabelaPreditiva, regra->filhos[i], numNTerm, 0);
-                    }
-                }
-            }
-            break;
-        } 
-        case E_SEQ: {
-            quantAnul = 0;
-            for(i = 0; i  < regra->nfilhos; i++) {
-                if(regra->filhos[i] != NULL) {
-                    quantAnul += preencherTabelaPreditiva2B(g, regra->filhos[i], tabelaPreditiva, numNTerm);
-                }
-            }
-
-            if(quantAnul == regra->nfilhos) {
-                return 1;
-            }
-
-            return 0;
-            break;
-        } 
-        case E_OPC: {
-            return 1;
-            break;
-        } 
-        case E_REP: {
-            return 1;
-            break;
-        } 
-        case E_VAZIO: {
-            return 1;
-            break;
-        }
-
-    }
-    return 0;
-}
-
-
-void addRegraNaTabela(noRegra ***tabelaPreditiva, Expr* regra, int posicaoNTerm, int posicaoTerm) {
-    noRegra *noTemp = (noRegra*) malloc(sizeof(noRegra));
-    noTemp->regra = regra;
-    noTemp->proximo = tabelaPreditiva[posicaoNTerm][posicaoTerm];
-
-    tabelaPreditiva[posicaoNTerm][posicaoTerm] = noTemp;
-}
-
-void liberarRecursos(const Gramatica *g, noRegra*** tabelaPreditiva) {
-    int i, j;
-    for(i = 0; i < g->nnts; i++) {
-        for(j = 0; j < g->nterms; j++) {
-            liberarCelulas(tabelaPreditiva[i][j]);
-        }
-    }
-    for(i = 0; i < g->nnts; i++) {
-        free(tabelaPreditiva[i]);
-    }
-
-    free(tabelaPreditiva);
-}
-
-void liberarCelulas(noRegra *celula) {
-    noRegra *noAux = celula;
-
-    while(celula != NULL) {
-        celula = celula->proximo;
-        free(noAux);
-        noAux = celula;
-    }
-}
-
-int verificar_expr(const Gramatica *g, int numNTerm, Expr *regra ) {
+int verificar_expr(const Gramatica *g, int numNTerm, Expr *regra, const Bitset *seg) {
     int erros = 0;
     int i, j, m;
 
@@ -253,9 +81,22 @@ int verificar_expr(const Gramatica *g, int numNTerm, Expr *regra ) {
             break;
         } 
         case E_SEQ: {
-            for(i = 0; i < regra->nfilhos; i++) {
-                erros += verificar_expr(g, numNTerm, regra->filhos[i]);
+            Bitset atual;
+            bitset_iniciar(&atual, g->nterms);
+            bitset_unir(&atual, seg);
+
+            for(i = regra->nfilhos - 1; i >= 0; i--) {
+                if(regra->filhos[i] != NULL) {
+                    erros += verificar_expr(g, numNTerm, regra->filhos[i], &atual);
+
+                    if(!regra->filhos[i]->anulavel) {
+                        bitset_limpar(&atual);
+                    }
+                    bitset_unir(&atual, &regra->filhos[i]->first);
+                }
             }
+
+            bitset_liberar(&atual);
             break;
         } 
         case E_ALT: {
@@ -270,10 +111,11 @@ int verificar_expr(const Gramatica *g, int numNTerm, Expr *regra ) {
                                 Bitset buffer1;
 
                                 bitset_iniciar(&buffer1, g->nterms);
-                                bitset_intersecao(&buffer1, &g->nts[numNTerm].follow, &regra->filhos[m]->first);
+                                bitset_intersecao(&buffer1, seg, &regra->filhos[m]->first);
 
                                 if(!bitset_vazio(&buffer1)) {
-                                    reportar(g, numNTerm, regra, 0, &buffer1, "alti  anula e interseccao entre follow de alti e first das outras");
+                                    reportar(g, numNTerm, regra, 0, &buffer1, "alti anula e interseccao entre follow de alti e first das outras");
+                                    erros++;
                                 }
 
                                 bitset_liberar(&buffer1);
@@ -302,7 +144,7 @@ int verificar_expr(const Gramatica *g, int numNTerm, Expr *regra ) {
             }
 
             for(i = 0; i < regra->nfilhos; i++) {
-                erros += verificar_expr(g, numNTerm, regra->filhos[i]);
+                erros += verificar_expr(g, numNTerm, regra->filhos[i], seg);
             }
 
             break;
@@ -311,6 +153,7 @@ int verificar_expr(const Gramatica *g, int numNTerm, Expr *regra ) {
         case E_REP: {
             int ehElse = 0;
             Bitset buffer;
+            Bitset intern;
             Expr *filho = regra->filhos[0];
 
             while(filho != NULL && filho->tipo == E_SEQ && filho->nfilhos > 0) {
@@ -329,17 +172,28 @@ int verificar_expr(const Gramatica *g, int numNTerm, Expr *regra ) {
                 }
 
                 bitset_iniciar(&buffer, g->nterms);
-                bitset_intersecao(&buffer, &regra->filhos[0]->first, &g->nts[numNTerm].follow);
+                bitset_intersecao(&buffer, &regra->filhos[0]->first, seg);
 
                 if(!bitset_vazio(&buffer)) {
                     if(ehElse) {
                         reportar(g, numNTerm, regra, 1, &buffer, "FIRST e FOLLOW de [ ] se intersectam (resolvido de forma gulosa) em");
+                    } else {
+                        char *op = (regra->tipo == E_OPC) ? "[ ]" : "{ }";
+                        reportar(g, numNTerm, regra, 0, &buffer, "FIRST e FOLLOW de %s se intersectam em", op);
+                        erros++;
                     }
                 }
 
                 bitset_liberar(&buffer);
+                bitset_iniciar(&intern, g->nterms);
+                bitset_unir(&intern, seg);
+                if(regra->tipo == E_REP) {
+                    bitset_unir(&intern, &regra->filhos[0]->first);
+                }
 
-                erros += verificar_expr(g, numNTerm, regra->filhos[0]);
+                erros += verificar_expr(g, numNTerm, regra->filhos[0], &intern);
+
+                bitset_liberar(&intern);
             }
             break;
         } 
